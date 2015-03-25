@@ -9,6 +9,8 @@
 #endif
 
 #include "resource.h"		// main symbols
+#include "RouterDlg.h"
+#include <pcap.h>
 
 
 // CRouterApp:

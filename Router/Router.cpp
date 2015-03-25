@@ -4,7 +4,7 @@
 
 #include "stdafx.h"
 #include "Router.h"
-#include "RouterDlg.h"
+#include "InitDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -70,13 +70,13 @@ BOOL CRouterApp::InitInstance()
 	// such as the name of your company or organization
 	SetRegistryKey(_T("Local AppWizard-Generated Applications"));
 
-	CRouterDlg dlg;
-	m_pMainWnd = &dlg;
-	INT_PTR nResponse = dlg.DoModal();
+	CInitDlg init_dlg;
+	INT_PTR nResponse = init_dlg.DoModal();
 	if (nResponse == IDOK)
 	{
-		// TODO: Place code here to handle when the dialog is
-		//  dismissed with OK
+		CRouterDlg router_dlg;
+		m_pMainWnd = &router_dlg;
+		router_dlg.DoModal();
 	}
 	else if (nResponse == IDCANCEL)
 	{

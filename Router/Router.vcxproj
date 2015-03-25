@@ -105,6 +105,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="InitDlg.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Router.h" />
     <ClInclude Include="RouterDlg.h" />
@@ -112,6 +113,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="InitDlg.cpp" />
     <ClCompile Include="Router.cpp" />
     <ClCompile Include="RouterDlg.cpp" />
     <ClCompile Include="stdafx.cpp">
