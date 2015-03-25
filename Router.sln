@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Router", "Router\Router.vcxproj", "{665D520A-10C7-434A-9B65-F23DD13C8C5C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{665D520A-10C7-434A-9B65-F23DD13C8C5C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{665D520A-10C7-434A-9B65-F23DD13C8C5C}.Debug|Win32.Build.0 = Debug|Win32
+		{665D520A-10C7-434A-9B65-F23DD13C8C5C}.Release|Win32.ActiveCfg = Release|Win32
+		{665D520A-10C7-434A-9B65-F23DD13C8C5C}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
