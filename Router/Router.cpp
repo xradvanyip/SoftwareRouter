@@ -69,7 +69,10 @@ BOOL CRouterApp::InitInstance()
 	// TODO: You should modify this string to be something appropriate
 	// such as the name of your company or organization
 	SetRegistryKey(_T("Local AppWizard-Generated Applications"));
-
+		
+	Int1 = new Interface(1);
+	Int2 = new Interface(2);
+			
 	CInitDlg init_dlg;
 	INT_PTR nResponse = init_dlg.DoModal();
 	if (nResponse == IDOK)
@@ -100,3 +103,20 @@ BOOL CRouterApp::InitInstance()
 	return FALSE;
 }
 
+
+Interface * CRouterApp::GetInt1(void)
+{
+	return Int1;
+}
+
+
+Interface * CRouterApp::GetInt2(void)
+{
+	return Int2;
+}
+
+
+CRouterDlg * CRouterApp::GetRouterDlg(void)
+{
+	return (CRouterDlg *)m_pMainWnd;
+}

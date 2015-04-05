@@ -11,6 +11,7 @@
 #include "resource.h"		// main symbols
 #include "RouterDlg.h"
 #include <pcap.h>
+#include "ProtocolDB.h"
 
 
 // CRouterApp:
@@ -29,6 +30,14 @@ public:
 // Implementation
 
 	DECLARE_MESSAGE_MAP()
+private:
+	Interface *Int1;
+	Interface *Int2;
+public:
+	BOOL stats_enabled;
+	Interface * GetInt1(void);
+	Interface * GetInt2(void);
+	CRouterDlg * GetRouterDlg(void);
 };
 
 extern CRouterApp theApp;
