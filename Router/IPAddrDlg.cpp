@@ -52,7 +52,7 @@ BOOL IPAddrDlg::OnInitDialog()
 
 	if (m_interface->IsIPaddrConfigured())
 	{
-		m_ipaddr.SetAddress(IPstruct.b[0],IPstruct.b[1],IPstruct.b[2],IPstruct.b[3]);
+		m_ipaddr.SetAddress(IPstruct.b[3],IPstruct.b[2],IPstruct.b[1],IPstruct.b[0]);
 		SetMask(m_interface->GetMaskCIDR());
 		m_cidrspin.SetPos(m_interface->GetMaskCIDR());
 	}
@@ -133,7 +133,7 @@ void IPAddrDlg::OnBnClickedOk()
 		return;
 	}
 
-	m_ipaddr.GetAddress(ip_addr.b[0],ip_addr.b[1],ip_addr.b[2],ip_addr.b[3]);
+	m_ipaddr.GetAddress(ip_addr.b[3],ip_addr.b[2],ip_addr.b[1],ip_addr.b[0]);
 	
 	theApp.GetRouterDlg()->EditIP(m_interface,ip_addr);
 

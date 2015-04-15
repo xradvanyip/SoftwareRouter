@@ -40,6 +40,8 @@ public:
 	void SetMACAddress(PBYTE mac_addr);
 	CString GetIPAddrString(void);
 	IPaddr GetIPAddrStruct(void);
+	CString GetPrefixString(void);
+	IPaddr GetPrefixStruct(void);
 	BOOL IsIPaddrConfigured(void);
 	void SetIPAddress(BYTE b1, BYTE b2, BYTE b3, BYTE b4, BYTE cidr);
 	void SetIPAddress(IPaddr ip_addr);

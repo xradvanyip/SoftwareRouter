@@ -33,11 +33,13 @@ public:
 private:
 	Interface *Int1;
 	Interface *Int2;
+	RoutingTable *rib;
 public:
 	BOOL stats_enabled;
 	Interface * GetInt1(void);
 	Interface * GetInt2(void);
 	CRouterDlg * GetRouterDlg(void);
+	RoutingTable * GetRIB(void);
 };
 
 extern CRouterApp theApp;

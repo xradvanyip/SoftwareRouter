@@ -21,6 +21,7 @@ END_MESSAGE_MAP()
 // CRouterApp construction
 
 CRouterApp::CRouterApp()
+	: rib(NULL)
 {
 	// support Restart Manager
 	m_dwRestartManagerSupportFlags = AFX_RESTART_MANAGER_SUPPORT_RESTART;
@@ -72,6 +73,7 @@ BOOL CRouterApp::InitInstance()
 		
 	Int1 = new Interface(1);
 	Int2 = new Interface(2);
+	rib = new RoutingTable();
 			
 	CInitDlg init_dlg;
 	INT_PTR nResponse = init_dlg.DoModal();
@@ -119,4 +121,10 @@ Interface * CRouterApp::GetInt2(void)
 CRouterDlg * CRouterApp::GetRouterDlg(void)
 {
 	return (CRouterDlg *)m_pMainWnd;
+}
+
+
+RoutingTable * CRouterApp::GetRIB(void)
+{
+	return rib;
 }

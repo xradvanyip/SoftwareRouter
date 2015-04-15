@@ -9,8 +9,14 @@ using namespace Concurrency;
 enum FRAME_TYPE {ETH2, RAW, SNAP, LLC};
 
 struct IPaddr {
-	BYTE b[4];
-	BYTE SubnetMaskCIDR;
+	union {
+		BYTE b[4];
+		DWORD dw;
+	};
+	union {
+		BYTE SubnetMaskCIDR;
+		BYTE HasNextHop;
+	};
 };
 
 struct BufferedFrame {

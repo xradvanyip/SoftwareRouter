@@ -111,7 +111,7 @@ CString Interface::GetIPAddrString(void)
 {
 	CString IPstr;
 
-	IPstr.Format(_T("%u.%u.%u.%u/%u"),IPAddrStruct.b[0],IPAddrStruct.b[1],IPAddrStruct.b[2],IPAddrStruct.b[3],IPAddrStruct.SubnetMaskCIDR);
+	IPstr.Format(_T("%u.%u.%u.%u/%u"),IPAddrStruct.b[3],IPAddrStruct.b[2],IPAddrStruct.b[1],IPAddrStruct.b[0],IPAddrStruct.SubnetMaskCIDR);
 	
 	return IPstr;
 }
@@ -120,6 +120,28 @@ CString Interface::GetIPAddrString(void)
 IPaddr Interface::GetIPAddrStruct(void)
 {
 	return IPAddrStruct;
+}
+
+
+CString Interface::GetPrefixString(void)
+{
+	IPaddr prefix = GetPrefixStruct();
+	CString PrefixStr;
+
+	PrefixStr.Format(_T("%u.%u.%u.%u/%u"),prefix.b[3],prefix.b[2],prefix.b[1],prefix.b[0],prefix.SubnetMaskCIDR);
+
+	return PrefixStr;
+}
+
+
+IPaddr Interface::GetPrefixStruct(void)
+{
+	IPaddr prefix;
+
+	prefix.dw = (IPAddrStruct.dw >> (32 - IPAddrStruct.SubnetMaskCIDR)) << (32 - IPAddrStruct.SubnetMaskCIDR);
+	prefix.SubnetMaskCIDR = IPAddrStruct.SubnetMaskCIDR;
+
+	return prefix;
 }
 
 
