@@ -14,6 +14,7 @@ Interface::Interface(int index)
 	for (i=0;i < 6;i++) MACAddrStruct.b[i] = 0x00;
 	for (i=0;i < 4;i++) IPAddrStruct.b[i] = 0x00;
 	IPAddrStruct.SubnetMaskCIDR = 0;
+	FrameBuffer = new Frame();
 }
 
 
@@ -186,4 +187,10 @@ NAT_MODE Interface::GetNATmode(void)
 void Interface::SetNATmode(NAT_MODE mode)
 {
 	NATmode = mode;
+}
+
+
+Frame * Interface::GetBuffer(void)
+{
+	return FrameBuffer;
 }

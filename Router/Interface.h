@@ -2,10 +2,6 @@
 
 #include "Frame.h"
 
-struct MACaddr {
-	BYTE b[6];
-};
-
 enum NAT_MODE {INSIDE, OUTSIDE};
 
 class Interface
@@ -48,6 +44,6 @@ public:
 	BYTE GetMaskCIDR(void);
 	void SetNATmode(NAT_MODE mode);
 	NAT_MODE GetNATmode(void);
-	// Frame * GetBuffer(void);
+	Frame * GetBuffer(void);
 };
 
