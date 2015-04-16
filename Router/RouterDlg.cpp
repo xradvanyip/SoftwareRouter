@@ -7,6 +7,7 @@
 #include "RouterDlg.h"
 #include "afxdialogex.h"
 #include "IPAddrDlg.h"
+#include "StaticRouteDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -51,6 +52,8 @@ BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
 	ON_BN_CLICKED(IDC_INT2SWBUTTON, &CRouterDlg::OnBnClickedInt2swbutton)
 	ON_MESSAGE(WM_INSERTROUTE_MESSAGE, &CRouterDlg::OnInsertRouteMessage)
 	ON_MESSAGE(WM_REMOVEROUTE_MESSAGE, &CRouterDlg::OnRemoveRouteMessage)
+	ON_BN_CLICKED(IDC_ADDSTATICBUTTON, &CRouterDlg::OnBnClickedAddStaticButton)
+	ON_BN_CLICKED(IDC_REMOVESTATICBUTTON, &CRouterDlg::OnBnClickedRemoveStaticButton)
 END_MESSAGE_MAP()
 
 
@@ -270,16 +273,19 @@ afx_msg LRESULT CRouterDlg::OnInsertRouteMessage(WPARAM wParam, LPARAM lParam)
 	switch (r->type)
 	{
 	case CONNECTED:
-		m_rib.InsertItem(*index,_T("C"));
+		tmp.Format(_T("C"));
 		break;
 
 	case STATIC:
-		m_rib.InsertItem(*index,_T("S"));
+		tmp.Format(_T("S"));
 		break;
 
 	case RIP:
-		m_rib.InsertItem(*index,_T("R"));
+		tmp.Format(_T("R"));
+		break;
 	}
+	if ((r->prefix.dw == 0) && (r->prefix.SubnetMaskCIDR == 0)) tmp.AppendFormat(_T("*"));
+	m_rib.InsertItem(*index,tmp);
 
 	tmp.Format(_T("%u.%u.%u.%u/%u"),r->prefix.b[3],r->prefix.b[2],r->prefix.b[1],r->prefix.b[0],r->prefix.SubnetMaskCIDR);
 	m_rib.SetItemText(*index,1,tmp);
@@ -294,7 +300,8 @@ afx_msg LRESULT CRouterDlg::OnInsertRouteMessage(WPARAM wParam, LPARAM lParam)
 	else tmp.Format(_T("-"));
 	m_rib.SetItemText(*index,4,tmp);
 
-	tmp.Format(_T("Int %d"),r->i->GetIndex());
+	if (!r->i) tmp.Format(_T("-"));
+	else tmp.Format(_T("Int %d"),r->i->GetIndex());
 	m_rib.SetItemText(*index,5,tmp);
 
 	free(index);
@@ -319,6 +326,30 @@ afx_msg LRESULT CRouterDlg::OnRemoveRouteMessage(WPARAM wParam, LPARAM lParam)
 	
 	m_rib.DeleteItem(*index);
 	free(index);
+
+	return 0;
+}
+
+
+void CRouterDlg::OnBnClickedAddStaticButton()
+{
+	AfxBeginThread(CRouterDlg::EditRouteThread,NULL);
+}
+
+
+void CRouterDlg::OnBnClickedRemoveStaticButton()
+{
+	int index = m_rib.GetSelectionMark();
+
+	if (index == -1) AfxMessageBox(_T("No route was selected!"));
+	else if (theApp.GetRIB()->RemoveStaticRoute(index)) AfxMessageBox(_T("Please select a STATIC route!"));
+}
+
+
+UINT CRouterDlg::EditRouteThread(void * pParam)
+{
+	StaticRouteDlg route_dlg;
+	route_dlg.DoModal();
 
 	return 0;
 }

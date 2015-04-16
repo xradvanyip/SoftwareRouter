@@ -54,6 +54,9 @@
     <ClInclude Include="FixListCtrl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="StaticRouteDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Router.cpp">
@@ -84,6 +87,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FixListCtrl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="StaticRouteDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

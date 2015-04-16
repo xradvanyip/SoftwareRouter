@@ -63,12 +63,15 @@ public:
 	afx_msg void OnBnClickedInt2ipbutton();
 	afx_msg void OnBnClickedInt1swbutton();
 	afx_msg void OnBnClickedInt2swbutton();
+	afx_msg void OnBnClickedAddStaticButton();
+	afx_msg void OnBnClickedRemoveStaticButton();
 	static UINT EditIPThread(void * pParam);
 	void EditIP(Interface *i, IPaddr ip_addr);
 	void EnableInterface(Interface *i, CMFCButton *swbutton);
 	void DisableInterface(Interface *i, CMFCButton *swbutton);
 	void InsertRoute(int index, Route& r);
 	void RemoveRoute(int index);
+	static UINT EditRouteThread(void * pParam);
 protected:
 	afx_msg LRESULT OnEditIPMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnInsertRouteMessage(WPARAM wParam, LPARAM lParam);

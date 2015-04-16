@@ -66,9 +66,98 @@ void RoutingTable::RemoveDirectlyConnected(Interface * i)
 }
 
 
-int RoutingTable::ComparePrefixes(IPaddr& prefix1, IPaddr& prefix2)
+int RoutingTable::MatchPrefix(IPaddr& address, IPaddr& prefix)
 {
-	if ((prefix1.dw >> (32 - prefix1.SubnetMaskCIDR)) == (prefix2.dw >> (32 - prefix2.SubnetMaskCIDR))) return 1;
+	if ((address.dw >> (32 - prefix.SubnetMaskCIDR)) == (prefix.dw >> (32 - prefix.SubnetMaskCIDR))) return 1;
 	
+	return 0;
+}
+
+
+int RoutingTable::Compare(Route& r1, Route& r2)
+{
+	if ((r1.AD == r2.AD) && (r1.metric == r2.metric)
+		&& (r1.prefix.dw == r2.prefix.dw) && (r1.prefix.SubnetMaskCIDR == r2.prefix.SubnetMaskCIDR)
+		&& (r1.type == r2.type)) return 1;
+	return 0;
+}
+
+
+int RoutingTable::IsDefaultRoute(Route& r)
+{
+	if ((r.prefix.dw == 0) && (r.prefix.SubnetMaskCIDR == 0)) return 1;
+	return 0;
+}
+
+
+Interface * RoutingTable::FindInterface(IPaddr& address)
+{
+	int i;
+
+	for (i=0;i < TableEntry.GetCount();i++)
+		if (MatchPrefix(address,TableEntry[i].prefix)) return TableEntry[i].i;
+	
+	return NULL;
+}
+
+
+void RoutingTable::AddRoute(Route r)
+{
+	int i;
+	int count = TableEntry.GetCount();
+	
+	//if (r.NextHop.HasNextHop) r.i = FindInterface(r.NextHop);
+	
+	if (TableEntry.IsEmpty())
+	{
+		TableEntry.Add(r);
+		theApp.GetRouterDlg()->InsertRoute(0,r);
+		return;
+	}
+
+	for (i=0;i < count;i++)
+	{
+		if (Compare(TableEntry[i],r)) return;
+		if (IsDefaultRoute(r))
+		{
+			if (IsDefaultRoute(TableEntry[i]))
+			{
+				if (TableEntry[i].AD > r.AD) break;
+				if ((TableEntry[i].AD == r.AD) && (TableEntry[i].metric > r.metric)) break;
+			}
+		}
+		else
+		{
+			if (TableEntry[i].AD > r.AD) break;
+			if ((TableEntry[i].AD == r.AD) && (TableEntry[i].metric > r.metric)) break;
+			if ((TableEntry[i].AD == r.AD)
+				&& (TableEntry[i].metric == r.metric)
+				&& (TableEntry[i].prefix.dw == r.prefix.dw)
+				&& (TableEntry[i].prefix.SubnetMaskCIDR < r.prefix.SubnetMaskCIDR)) break;
+			if (IsDefaultRoute(TableEntry[i])) break;
+		}
+	}
+
+	if (i == count)
+	{
+		TableEntry.Add(r);
+		theApp.GetRouterDlg()->InsertRoute(count,r);
+		return;
+	}
+	else
+	{
+		TableEntry.InsertAt(i,r);
+		theApp.GetRouterDlg()->InsertRoute(i,r);
+		return;
+	}
+}
+
+
+int RoutingTable::RemoveStaticRoute(int index)
+{
+	if (TableEntry[index].type != STATIC) return 1;
+
+	TableEntry.RemoveAt(index);
+	theApp.GetRouterDlg()->RemoveRoute(index);
 	return 0;
 }

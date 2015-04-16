@@ -24,6 +24,12 @@ private:
 public:
 	void AddDirectlyConnected(Interface * i);
 	void RemoveDirectlyConnected(Interface * i);
-	int ComparePrefixes(IPaddr& prefix1, IPaddr& prefix2);
+	int MatchPrefix(IPaddr& address, IPaddr& prefix);
+	int Compare(Route& r1, Route& r2);
+	int IsDefaultRoute(Route& r);
+	void AddRoute(Route r);
+	int RemoveStaticRoute(int index);
+private:
+	Interface * FindInterface(IPaddr& address);
 };
 
