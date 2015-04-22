@@ -40,6 +40,7 @@ void CRouterDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_INT2SWBUTTON, m_int2swbutton);
 	DDX_Control(pDX, IDC_INT2NATCOMBO, m_int2natmode);
 	DDX_Control(pDX, IDC_RIBLIST, m_rib);
+	DDX_Control(pDX, IDC_ARPLIST, m_arptable);
 }
 
 BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
@@ -54,6 +55,9 @@ BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
 	ON_MESSAGE(WM_REMOVEROUTE_MESSAGE, &CRouterDlg::OnRemoveRouteMessage)
 	ON_BN_CLICKED(IDC_ADDSTATICBUTTON, &CRouterDlg::OnBnClickedAddStaticButton)
 	ON_BN_CLICKED(IDC_REMOVESTATICBUTTON, &CRouterDlg::OnBnClickedRemoveStaticButton)
+	ON_BN_CLICKED(IDC_ARPCLEARBUTTON, &CRouterDlg::OnBnClickedArpClearButton)
+	ON_MESSAGE(WM_INSERTARP_MESSAGE, &CRouterDlg::OnInsertArpMessage)
+	ON_MESSAGE(WM_REMOVEARP_MESSAGE, &CRouterDlg::OnRemoveArpMessage)
 END_MESSAGE_MAP()
 
 
@@ -71,6 +75,8 @@ BOOL CRouterDlg::OnInitDialog()
 	// TODO: Add extra initialization here
 	InitInterfacesInfo();
 	InitRoutingTable();
+	InitArpTable();
+	theApp.StartThreads();
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -145,6 +151,16 @@ void CRouterDlg::InitRoutingTable(void)
 }
 
 
+void CRouterDlg::InitArpTable(void)
+{
+	m_arptable.SetExtendedStyle(m_arptable.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	m_arptable.InsertColumn(0,_T("IP address"),LVCFMT_CENTER,100);
+	m_arptable.InsertColumn(1,_T("MAC address"),LVCFMT_CENTER,120);
+
+	theApp.GetARPtable()->InsertDefaults();
+}
+
+
 void CRouterDlg::AutoResizeColumns(CListCtrl *control)
 {
 	int i, ColumnWidth, HeaderWidth;
@@ -172,7 +188,6 @@ void CRouterDlg::EnableInterface(Interface *i, CMFCButton *swbutton)
 	}
 	
 	i->SetEnabled(TRUE);
-	theApp.GetRIB()->AddDirectlyConnected(i);
 	swbutton->SetTextColor(RGB(255,0,0));
 	swbutton->SetWindowTextW(_T("Disable interface"));
 }
@@ -181,7 +196,6 @@ void CRouterDlg::EnableInterface(Interface *i, CMFCButton *swbutton)
 void CRouterDlg::DisableInterface(Interface *i, CMFCButton *swbutton)
 {
 	i->SetEnabled(FALSE);
-	theApp.GetRIB()->RemoveDirectlyConnected(i);
 	swbutton->SetTextColor(RGB(0,255,0));
 	swbutton->SetWindowTextW(_T("Enable interface"));
 }
@@ -205,11 +219,6 @@ void CRouterDlg::OnBnClickedInt1swbutton()
 
 	if (i->IsEnabled()) DisableInterface(i,&m_int1swbutton);
 	else EnableInterface(i,&m_int1swbutton);
-
-	/*CString tmp;
-	tmp.Format(_T("%d %d %d %d %d %d"),m_rib.GetColumnWidth(0),m_rib.GetColumnWidth(1),m_rib.GetColumnWidth(2)
-		,m_rib.GetColumnWidth(3),m_rib.GetColumnWidth(4),m_rib.GetColumnWidth(5));
-	AfxMessageBox(tmp);*/
 }
 
 
@@ -237,8 +246,8 @@ void CRouterDlg::EditIP(Interface *i, IPaddr ip_addr)
 	SendMessage(WM_EDITIP_MESSAGE,0,(LPARAM)i);
 	if (i->IsEnabled())
 	{
-		theApp.GetRIB()->RemoveDirectlyConnected(i);
-		theApp.GetRIB()->AddDirectlyConnected(i);
+		i->SetEnabled(FALSE);
+		i->SetEnabled(TRUE);
 	}
 }
 
@@ -301,6 +310,7 @@ afx_msg LRESULT CRouterDlg::OnInsertRouteMessage(WPARAM wParam, LPARAM lParam)
 	m_rib.SetItemText(*index,4,tmp);
 
 	if (!r->i) tmp.Format(_T("-"));
+	else if (r->NextHop.HasNextHop) tmp.Format(_T("\"Int %d\""),r->i->GetIndex());
 	else tmp.Format(_T("Int %d"),r->i->GetIndex());
 	m_rib.SetItemText(*index,5,tmp);
 
@@ -351,5 +361,64 @@ UINT CRouterDlg::EditRouteThread(void * pParam)
 	StaticRouteDlg route_dlg;
 	route_dlg.DoModal();
 
+	return 0;
+}
+
+
+void CRouterDlg::OnBnClickedArpClearButton()
+{
+	theApp.GetARPtable()->RemoveAll();
+	
+	/*CString tmp;
+	tmp.Format(_T("%d %d"),m_arptable.GetColumnWidth(0),m_arptable.GetColumnWidth(1));
+	AfxMessageBox(tmp);*/
+}
+
+
+void CRouterDlg::InsertArp(int index, ArpEntry& entry)
+{
+	int *indexptr = (int *) malloc(sizeof(int));
+	ArpEntry *entryptr = (ArpEntry *) malloc(sizeof(ArpEntry));
+	*indexptr = index;
+	*entryptr = entry;
+	SendMessage(WM_INSERTARP_MESSAGE,(WPARAM)indexptr,(LPARAM)entryptr);
+}
+
+
+afx_msg LRESULT CRouterDlg::OnInsertArpMessage(WPARAM wParam, LPARAM lParam)
+{
+	int *index = (int *)wParam;
+	ArpEntry *entry = (ArpEntry *)lParam;
+	CString tmp;
+	
+	tmp.Format(_T("%u.%u.%u.%u"),entry->ip.b[3],entry->ip.b[2],entry->ip.b[1],entry->ip.b[0]);
+	m_arptable.InsertItem(*index,tmp);
+
+	tmp.Format(_T("%.2X:%.2X:%.2X:%.2X:%.2X:%.2X"),entry->mac.b[0],entry->mac.b[1],entry->mac.b[2],entry->mac.b[3],entry->mac.b[4],entry->mac.b[5]);
+	m_arptable.SetItemText(*index,1,tmp);
+
+	free(index);
+	free(entry);
+
+	return 0;
+}
+
+
+void CRouterDlg::RemoveArp(int index)
+{
+	int *indexptr = (int *) malloc(sizeof(int));
+
+	*indexptr = index;
+	SendMessage(WM_REMOVEARP_MESSAGE,0,(LPARAM)indexptr);
+}
+
+
+afx_msg LRESULT CRouterDlg::OnRemoveArpMessage(WPARAM wParam, LPARAM lParam)
+{
+	int *index = (int *)lParam;
+	
+	m_arptable.DeleteItem(*index);
+	free(index);
+	
 	return 0;
 }

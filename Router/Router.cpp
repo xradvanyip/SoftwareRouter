@@ -74,6 +74,7 @@ BOOL CRouterApp::InitInstance()
 	Int1 = new Interface(1);
 	Int2 = new Interface(2);
 	rib = new RoutingTable();
+	RouterARPtab = new ArpTable();
 			
 	CInitDlg init_dlg;
 	INT_PTR nResponse = init_dlg.DoModal();
@@ -127,4 +128,132 @@ CRouterDlg * CRouterApp::GetRouterDlg(void)
 RoutingTable * CRouterApp::GetRIB(void)
 {
 	return rib;
+}
+
+
+ArpTable * CRouterApp::GetARPtable(void)
+{
+	return RouterARPtab;
+}
+
+
+UINT CRouterApp::RoutingProcess(void * pParam)
+{
+	Interface *iface = (Interface *) pParam;
+	Interface *out_if;
+	Frame *buffer = iface->GetBuffer();
+	Frame TTLex;
+	RoutingTable *rib = theApp.GetRIB();
+	ArpTable *arp = theApp.GetARPtable();
+	int retval = 0;
+	MACaddr src_mac, dest_mac, local_mac = iface->GetMACAddrStruct();
+	IPaddr dest_ip, NextHop, *NextHop_ptr;
+
+	while (TRUE)
+	{
+		buffer->GetFrame();
+
+		src_mac = buffer->GetSrcMAC();
+		// if source MAC address is the local MAC address, the frame is ignored
+		if (theApp.CompareMAC(src_mac,local_mac) == 0) continue;
+		dest_mac = buffer->GetDestMAC();
+		// if source and destination MAC addresses are the same, the frame is ignored
+		if (theApp.CompareMAC(src_mac,dest_mac) == 0) continue;
+		// if source MAC address is broadcast address, the frame is ignored
+		if (theApp.IsBroadcast(src_mac)) continue;
+
+		// if destination MAC address is not the local or broadcast MAC address
+		if ((theApp.CompareMAC(dest_mac,local_mac) == 1) && (theApp.IsBroadcast(dest_mac) == 0))
+		{
+			// RIPv2
+			continue;
+		}
+
+		// if it is ARP
+		if (buffer->GetLay3Type() == 0x0806)
+		{
+			if (buffer->IsArpReply()) arp->ProcessArpReply(buffer,iface);
+			if (buffer->IsArpRequest()) arp->ReplyToRequest(buffer,iface);
+			continue;
+		}
+
+		// if not include IP packet, the frame is ignored
+		if (buffer->GetLay3Type() != 0x0800) continue;
+
+		// if the IP header checksum is not valid, the packet is ignored
+		if (!buffer->IsIPChecksumValid()) continue;
+
+		// decrease the TTL value of packet by 1
+		buffer->DecTTL();
+		if (buffer->GetTTL() == 0)
+		{
+			// traceroute
+			TTLex.GenerateTTLExceeded(buffer,iface->GetIPAddrStruct(),iface->GenerateIpHeaderID());
+			iface->SendFrame(&TTLex,NULL,FALSE);
+			TTLex.Clear();
+			continue;
+		}
+		
+		dest_ip = buffer->GetDestIPaddr();
+		// if destination of packet is this router
+		if ((theApp.GetInt1()->IsLocalIP(dest_ip)) || (theApp.GetInt2()->IsLocalIP(dest_ip)))
+		{
+			// ECHO reply
+			if ((buffer->IsIcmpEchoRequest()) && (buffer->IsICMPChecksumValid()))
+			{
+				buffer->GenerateIcmpEchoReply(dest_ip);
+				iface->SendFrame(buffer,NULL,FALSE);
+			}
+			continue;
+		}
+
+		// NAT
+
+		rib->m_cs_table.Lock();
+		NextHop_ptr = NULL;
+		out_if = rib->DoLookup(dest_ip,&NextHop_ptr);
+		if (NextHop_ptr) {
+			NextHop = *NextHop_ptr;
+			NextHop_ptr = &NextHop;
+		}
+		rib->m_cs_table.Unlock();
+		// if can not find prefix in the routing table, the packet is ignored
+		if (!out_if) continue;
+
+		// recalculate IP header checksum
+		buffer->FillIPChecksum();
+
+		// pack the packet to a new frame and send it out
+		retval = out_if->SendFrame(buffer,NextHop_ptr);
+		if (retval != 0) break;
+	}
+
+	return 0;
+}
+
+
+void CRouterApp::StartThreads(void)
+{
+	AfxBeginThread(CRouterApp::RoutingProcess,Int1);
+	AfxBeginThread(CRouterApp::RoutingProcess,Int2);
+}
+
+
+int CRouterApp::CompareMAC(MACaddr& mac1, MACaddr& mac2)
+{
+	int i;
+
+	for (i=0;i < 6;i++) if (mac1.b[i] != mac2.b[i]) return 1;
+	
+	return 0;
+}
+
+
+int CRouterApp::IsBroadcast(MACaddr& address)
+{
+	int i;
+
+	for (i=0;i < 6;i++) if (address.b[i] != 0xFF) return 0;
+	
+	return 1;
 }

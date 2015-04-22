@@ -8,10 +8,13 @@
 #include "fixlistctrl.h"
 #include "Interface.h"
 #include "RoutingTable.h"
+#include "ArpTable.h"
 
 #define WM_EDITIP_MESSAGE WM_APP+100
 #define WM_INSERTROUTE_MESSAGE WM_APP+101
 #define WM_REMOVEROUTE_MESSAGE WM_APP+102
+#define WM_INSERTARP_MESSAGE WM_APP+103
+#define WM_REMOVEARP_MESSAGE WM_APP+104
 
 // CRouterDlg dialog
 class CRouterDlg : public CDialog
@@ -55,9 +58,12 @@ private:
 
 	CFixListCtrl m_rib;
 
+	CFixListCtrl m_arptable;
+
 	void AutoResizeColumns(CListCtrl *control);
 	void InitInterfacesInfo(void);
 	void InitRoutingTable(void);
+	void InitArpTable(void);
 public:
 	afx_msg void OnBnClickedInt1IPbutton();
 	afx_msg void OnBnClickedInt2ipbutton();
@@ -65,6 +71,7 @@ public:
 	afx_msg void OnBnClickedInt2swbutton();
 	afx_msg void OnBnClickedAddStaticButton();
 	afx_msg void OnBnClickedRemoveStaticButton();
+	afx_msg void OnBnClickedArpClearButton();
 	static UINT EditIPThread(void * pParam);
 	void EditIP(Interface *i, IPaddr ip_addr);
 	void EnableInterface(Interface *i, CMFCButton *swbutton);
@@ -72,8 +79,12 @@ public:
 	void InsertRoute(int index, Route& r);
 	void RemoveRoute(int index);
 	static UINT EditRouteThread(void * pParam);
+	void InsertArp(int index, ArpEntry& entry);
+	void RemoveArp(int index);
 protected:
 	afx_msg LRESULT OnEditIPMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnInsertRouteMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnRemoveRouteMessage(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnInsertArpMessage(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnRemoveArpMessage(WPARAM wParam, LPARAM lParam);
 };

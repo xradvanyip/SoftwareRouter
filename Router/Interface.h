@@ -1,5 +1,6 @@
 #pragma once
 
+#include <pcap.h>
 #include "Frame.h"
 
 enum NAT_MODE {INSIDE, OUTSIDE};
@@ -17,9 +18,17 @@ private:
 	CString MACAddress;
 	MACaddr MACAddrStruct;
 	IPaddr IPAddrStruct;
+	IPaddr PrefixStruct;
 	BOOL IPaddrIsSet;
 	NAT_MODE NATmode;
+	WORD IpHeaderID;
+	pcap_t *handle;
 	Frame *FrameBuffer;
+	CCriticalSection m_cs_sw;
+	CCriticalSection m_cs_ip;
+	CCriticalSection m_cs_handle;
+	CCriticalSection m_cs_send;
+	void SetPrefixStruct(void);
 public:
 	int GetIndex(void);
 	CStringA GetName(void);
@@ -36,6 +45,9 @@ public:
 	void SetMACAddress(PBYTE mac_addr);
 	CString GetIPAddrString(void);
 	IPaddr GetIPAddrStruct(void);
+	IPaddr GetBroadcastIPAddrStruct(void);
+	int IsLocalIP(IPaddr& ip);
+	int IsInLocalNetwork(IPaddr& ip);
 	CString GetPrefixString(void);
 	IPaddr GetPrefixStruct(void);
 	BOOL IsIPaddrConfigured(void);
@@ -44,6 +56,12 @@ public:
 	BYTE GetMaskCIDR(void);
 	void SetNATmode(NAT_MODE mode);
 	NAT_MODE GetNATmode(void);
+	WORD GenerateIpHeaderID(void);
 	Frame * GetBuffer(void);
+	int OpenAdapter(void);
+	pcap_t * GetPcapHandle(void);
+	void StartReceive(void);
+	static UINT ReceiveThread(void * pParam);
+	int SendFrame(Frame * buffer, IPaddr *NextHop = NULL, BOOL UseARP = TRUE);
 };
 

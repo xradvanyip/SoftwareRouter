@@ -10,7 +10,6 @@
 
 #include "resource.h"		// main symbols
 #include "RouterDlg.h"
-#include <pcap.h>
 #include "ProtocolDB.h"
 
 
@@ -34,12 +33,18 @@ private:
 	Interface *Int1;
 	Interface *Int2;
 	RoutingTable *rib;
+	ArpTable *RouterARPtab;
 public:
 	BOOL stats_enabled;
 	Interface * GetInt1(void);
 	Interface * GetInt2(void);
 	CRouterDlg * GetRouterDlg(void);
 	RoutingTable * GetRIB(void);
+	ArpTable * GetARPtable(void);
+	static UINT RoutingProcess(void * pParam);
+	void StartThreads(void);
+	int CompareMAC(MACaddr& mac1, MACaddr& mac2);
+	int IsBroadcast(MACaddr& address);
 };
 
 extern CRouterApp theApp;

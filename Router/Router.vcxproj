@@ -105,6 +105,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ArpTable.h" />
     <ClInclude Include="FixListCtrl.h" />
     <ClInclude Include="Frame.h" />
     <ClInclude Include="InitDlg.h" />
@@ -120,6 +121,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ArpTable.cpp" />
     <ClCompile Include="FixListCtrl.cpp" />
     <ClCompile Include="Frame.cpp" />
     <ClCompile Include="InitDlg.cpp" />

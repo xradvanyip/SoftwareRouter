@@ -24,10 +24,12 @@ void RoutingTable::AddDirectlyConnected(Interface * i)
 	newRoute.NextHop.HasNextHop = FALSE;
 	newRoute.i = i;
 
+	m_cs_table.Lock();
 	if (TableEntry.IsEmpty())
 	{
 		TableEntry.Add(newRoute);
 		theApp.GetRouterDlg()->InsertRoute(0,newRoute);
+		m_cs_table.Unlock();
 		return;
 	}
 	
@@ -37,6 +39,7 @@ void RoutingTable::AddDirectlyConnected(Interface * i)
 	{
 		TableEntry.InsertAt(0,newRoute);
 		theApp.GetRouterDlg()->InsertRoute(0,newRoute);
+		m_cs_table.Unlock();
 		return;
 	}
 	
@@ -49,6 +52,7 @@ void RoutingTable::AddDirectlyConnected(Interface * i)
 		TableEntry.InsertAt(1,newRoute);
 	}
 	theApp.GetRouterDlg()->InsertRoute(1,newRoute);
+	m_cs_table.Unlock();
 }
 
 
@@ -56,6 +60,7 @@ void RoutingTable::RemoveDirectlyConnected(Interface * i)
 {
 	int j;
 	
+	m_cs_table.Lock();
 	for (j=0;j < TableEntry.GetCount();j++)
 		if ((TableEntry[j].type == CONNECTED) && (TableEntry[j].i->GetIndex() == i->GetIndex()))
 		{
@@ -63,6 +68,7 @@ void RoutingTable::RemoveDirectlyConnected(Interface * i)
 			theApp.GetRouterDlg()->RemoveRoute(j);
 			break;
 		}
+	m_cs_table.Unlock();
 }
 
 
@@ -90,12 +96,28 @@ int RoutingTable::IsDefaultRoute(Route& r)
 }
 
 
-Interface * RoutingTable::FindInterface(IPaddr& address)
+Interface * RoutingTable::DoLookup(IPaddr& address, IPaddr **NextHop)
 {
 	int i;
+	Interface *found_int;
 
 	for (i=0;i < TableEntry.GetCount();i++)
-		if (MatchPrefix(address,TableEntry[i].prefix)) return TableEntry[i].i;
+		if (MatchPrefix(address,TableEntry[i].prefix))
+		{
+			if (TableEntry[i].NextHop.HasNextHop)
+			{
+				if (NextHop) *NextHop = &TableEntry[i].NextHop;
+				found_int = DoLookup(TableEntry[i].NextHop, NextHop);
+				if (TableEntry[i].i != found_int)
+				{
+					theApp.GetRouterDlg()->RemoveRoute(i);
+					TableEntry[i].i = found_int;
+					theApp.GetRouterDlg()->InsertRoute(i,TableEntry[i]);
+				}
+				return found_int;
+			}
+			return TableEntry[i].i;
+		}
 	
 	return NULL;
 }
@@ -104,10 +126,11 @@ Interface * RoutingTable::FindInterface(IPaddr& address)
 void RoutingTable::AddRoute(Route r)
 {
 	int i;
-	int count = TableEntry.GetCount();
+	int count;
+	CSingleLock lock(&m_cs_table);
 	
-	//if (r.NextHop.HasNextHop) r.i = FindInterface(r.NextHop);
-	
+	lock.Lock();
+	count = TableEntry.GetCount();
 	if (TableEntry.IsEmpty())
 	{
 		TableEntry.Add(r);
@@ -142,19 +165,20 @@ void RoutingTable::AddRoute(Route r)
 	{
 		TableEntry.Add(r);
 		theApp.GetRouterDlg()->InsertRoute(count,r);
-		return;
 	}
 	else
 	{
 		TableEntry.InsertAt(i,r);
 		theApp.GetRouterDlg()->InsertRoute(i,r);
-		return;
 	}
 }
 
 
 int RoutingTable::RemoveStaticRoute(int index)
 {
+	CSingleLock lock(&m_cs_table);
+	
+	lock.Lock();
 	if (TableEntry[index].type != STATIC) return 1;
 
 	TableEntry.RemoveAt(index);

@@ -22,14 +22,14 @@ public:
 private:
 	CArray<Route> TableEntry;
 public:
+	CCriticalSection m_cs_table;
 	void AddDirectlyConnected(Interface * i);
 	void RemoveDirectlyConnected(Interface * i);
+	Interface * DoLookup(IPaddr& address, IPaddr **NextHop = NULL);
 	int MatchPrefix(IPaddr& address, IPaddr& prefix);
 	int Compare(Route& r1, Route& r2);
 	int IsDefaultRoute(Route& r);
 	void AddRoute(Route r);
 	int RemoveStaticRoute(int index);
-private:
-	Interface * FindInterface(IPaddr& address);
 };
 
