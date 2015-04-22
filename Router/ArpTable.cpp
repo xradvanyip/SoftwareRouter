@@ -89,11 +89,14 @@ void ArpTable::ReplyToRequest(Frame * buffer, Interface *iface)
 		iface->SendFrame(buffer);
 	}
 		
-	lock.Lock();
-	for (i=0;i < TableEntry.GetCount();i++) if (CompareIP(newEntry.ip,TableEntry[i].ip) == 0) return;
+	if (iface->IsInLocalNetwork(newEntry.ip))
+	{
+		lock.Lock();
+		for (i=0;i < TableEntry.GetCount();i++) if (CompareIP(newEntry.ip,TableEntry[i].ip) == 0) return;
 
-	TableEntry.InsertAt(0,newEntry);
-	theApp.GetRouterDlg()->InsertArp(0,newEntry);
+		TableEntry.InsertAt(0,newEntry);
+		theApp.GetRouterDlg()->InsertArp(0,newEntry);
+	}
 }
 
 

@@ -54,6 +54,7 @@ public:
 	WORD MergeBytes(BYTE upper, BYTE lower);
 	BYTE GetUpperByte(WORD number);
 	BYTE GetLowerByte(WORD number);
+	FRAME_TYPE GetType(void);
 	WORD GetLay3Type(void);
 	void SetLay3Type(WORD EtherType);
 	

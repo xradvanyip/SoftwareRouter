@@ -41,6 +41,8 @@ void CRouterDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_INT2NATCOMBO, m_int2natmode);
 	DDX_Control(pDX, IDC_RIBLIST, m_rib);
 	DDX_Control(pDX, IDC_ARPLIST, m_arptable);
+	DDX_Control(pDX, IDC_STATSLIST, m_stats);
+	DDX_Control(pDX, IDC_STATSCHECK, m_statscheckbox);
 }
 
 BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
@@ -58,6 +60,10 @@ BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
 	ON_BN_CLICKED(IDC_ARPCLEARBUTTON, &CRouterDlg::OnBnClickedArpClearButton)
 	ON_MESSAGE(WM_INSERTARP_MESSAGE, &CRouterDlg::OnInsertArpMessage)
 	ON_MESSAGE(WM_REMOVEARP_MESSAGE, &CRouterDlg::OnRemoveArpMessage)
+	ON_BN_CLICKED(IDC_STATSCHECK, &CRouterDlg::OnBnClickedStatscheck)
+	ON_BN_CLICKED(IDC_STATSRESETBUTTON, &CRouterDlg::OnBnClickedStatsResetButton)
+	ON_MESSAGE(WM_INSERTSTAT_MESSAGE, &CRouterDlg::OnInsertStatMessage)
+	ON_MESSAGE(WM_UPDATESTAT_MESSAGE, &CRouterDlg::OnUpdateStatMessage)
 END_MESSAGE_MAP()
 
 
@@ -76,6 +82,7 @@ BOOL CRouterDlg::OnInitDialog()
 	InitInterfacesInfo();
 	InitRoutingTable();
 	InitArpTable();
+	InitStatsTable();
 	theApp.StartThreads();
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
@@ -146,7 +153,7 @@ void CRouterDlg::InitRoutingTable(void)
 	m_rib.InsertColumn(1,_T("Network"),LVCFMT_CENTER,112);
 	m_rib.InsertColumn(2,_T("AD"),LVCFMT_CENTER,30);
 	m_rib.InsertColumn(3,_T("Metric"),LVCFMT_CENTER,41);
-	m_rib.InsertColumn(4,_T("Next Hop"),LVCFMT_CENTER,112);
+	m_rib.InsertColumn(4,_T("Next Hop"),LVCFMT_CENTER,100);
 	m_rib.InsertColumn(5,_T("Interface"),LVCFMT_CENTER,57);
 }
 
@@ -158,6 +165,20 @@ void CRouterDlg::InitArpTable(void)
 	m_arptable.InsertColumn(1,_T("MAC address"),LVCFMT_CENTER,120);
 
 	theApp.GetARPtable()->InsertDefaults();
+}
+
+
+void CRouterDlg::InitStatsTable(void)
+{
+	m_stats.SetExtendedStyle(m_stats.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	m_stats.InsertColumn(0,_T("NIC"),LVCFMT_CENTER,32);
+	m_stats.InsertColumn(1,_T("In/Out"),LVCFMT_CENTER,44);
+	m_stats.InsertColumn(2,_T("Frame type"),LVCFMT_CENTER,67);
+	m_stats.InsertColumn(3,_T("EtherType"),LVCFMT_CENTER,62);
+	m_stats.InsertColumn(4,_T("Protocol in IP"),LVCFMT_CENTER,75);
+	m_stats.InsertColumn(5,_T("Count"),LVCFMT_CENTER,55);
+
+	m_statscheckbox.SetCheck(BST_CHECKED);
 }
 
 
@@ -370,7 +391,8 @@ void CRouterDlg::OnBnClickedArpClearButton()
 	theApp.GetARPtable()->RemoveAll();
 	
 	/*CString tmp;
-	tmp.Format(_T("%d %d"),m_arptable.GetColumnWidth(0),m_arptable.GetColumnWidth(1));
+	tmp.Format(_T("%d %d %d %d %d %d"),m_stats.GetColumnWidth(0),m_stats.GetColumnWidth(1),m_stats.GetColumnWidth(2),
+		m_stats.GetColumnWidth(3),m_stats.GetColumnWidth(4),m_stats.GetColumnWidth(5));
 	AfxMessageBox(tmp);*/
 }
 
@@ -419,6 +441,110 @@ afx_msg LRESULT CRouterDlg::OnRemoveArpMessage(WPARAM wParam, LPARAM lParam)
 	
 	m_arptable.DeleteItem(*index);
 	free(index);
+	
+	return 0;
+}
+
+
+void CRouterDlg::OnBnClickedStatscheck()
+{
+	if (m_statscheckbox.GetCheck()) theApp.GetStatistics()->SetEnabled(TRUE);
+	else theApp.GetStatistics()->SetEnabled(FALSE);
+}
+
+
+void CRouterDlg::OnBnClickedStatsResetButton()
+{
+	Stats *s = theApp.GetStatistics();;
+	
+	s->m_cs_stats.Lock();
+	s->Reset();
+	m_stats.DeleteAllItems();
+	s->m_cs_stats.Unlock();
+}
+
+
+void CRouterDlg::InsertStat(int index, Statistic& s)
+{
+	int *indexptr = (int *) malloc(sizeof(int));
+	Statistic *sptr = (Statistic *) malloc(sizeof(Statistic));
+	*indexptr = index;
+	*sptr = s;
+	SendMessage(WM_INSERTSTAT_MESSAGE,(WPARAM)indexptr,(LPARAM)sptr);
+}
+
+
+afx_msg LRESULT CRouterDlg::OnInsertStatMessage(WPARAM wParam, LPARAM lParam)
+{
+	int *index = (int *)wParam;
+	Statistic *s = (Statistic *)lParam;
+	ProtocolDB *db = ProtocolDB::GetInstance();
+	CString tmp;
+
+	tmp.Format(_T("Int %d"),s->IntId);
+	m_stats.InsertItem(*index,tmp);
+
+	if (s->d == In) m_stats.SetItemText(*index,1,_T("in"));
+	else m_stats.SetItemText(*index,1,_T("out"));
+
+	if (s->HasFrameType == 2) switch (s->FrameType)
+	{
+	case ETH2:
+		m_stats.SetItemText(*index,2,_T("Eth II"));
+		break;
+
+	case RAW:
+		m_stats.SetItemText(*index,2,_T("RAW"));
+		break;
+
+	case SNAP:
+		m_stats.SetItemText(*index,2,_T("SNAP"));
+		break;
+
+	case LLC:
+		m_stats.SetItemText(*index,2,_T("LLC"));
+		break;
+	}
+	else m_stats.SetItemText(*index,2,_T("any"));
+
+	if (s->HasLay3Type == 2) m_stats.SetItemText(*index,3,db->GetEth2ProtocolName(s->Lay3Type));
+	else if (s->HasLay3Type == 1) m_stats.SetItemText(*index,3,_T("any"));
+	else m_stats.SetItemText(*index,3,_T("-"));
+
+	if (s->HasLay4Type == 2) m_stats.SetItemText(*index,4,db->GetIPProtocolName(s->Lay4Type));
+	else if (s->HasLay4Type == 1) m_stats.SetItemText(*index,4,_T("any"));
+	else m_stats.SetItemText(*index,4,_T("-"));
+
+	tmp.Format(_T("%u"),s->count);
+	m_stats.SetItemText(*index,5,tmp);
+
+	free(index);
+	free(s);
+	
+	return 0;
+}
+
+
+void CRouterDlg::UpdateStat(int index, UINT count)
+{
+	int *indexptr = (int *) malloc(sizeof(int));
+	UINT *countptr = (UINT *) malloc(sizeof(UINT));
+	*indexptr = index;
+	*countptr = count;
+	SendMessage(WM_UPDATESTAT_MESSAGE,(WPARAM)indexptr,(LPARAM)countptr);
+}
+
+
+afx_msg LRESULT CRouterDlg::OnUpdateStatMessage(WPARAM wParam, LPARAM lParam)
+{
+	int *index = (int *)wParam;
+	UINT *count = (UINT *)lParam;
+	CString tmp;
+
+	tmp.Format(_T("%u"),*count);
+	m_stats.SetItemText(*index,5,tmp);
+	free(index);
+	free(count);
 	
 	return 0;
 }

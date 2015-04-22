@@ -122,6 +122,15 @@ BYTE Frame::GetLowerByte(WORD number)
 }
 
 
+FRAME_TYPE Frame::GetType(void)
+{
+	if (frame[12] >= 0x06) return ETH2;
+	else if ((frame[14] == 0xFF) && (frame[15] == 0xFF)) return RAW;
+	else if ((frame[14] == 0xAA) && (frame[15] == 0xAA) && (frame[16] == 0x03)) return SNAP;
+	else return LLC;
+}
+
+
 WORD Frame::GetLay3Type(void)
 {
 	return MergeBytes(frame[12],frame[13]);
@@ -366,7 +375,6 @@ void Frame::GenerateIcmpEchoReply(IPaddr local_ip)
 
 void Frame::GenerateTTLExceeded(Frame *old, IPaddr local_ip, WORD IPHdrID)
 {
-	int i;
 	WORD w;
 	
 	length = old->GetLength() + 28;

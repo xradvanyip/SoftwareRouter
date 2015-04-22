@@ -75,6 +75,7 @@ BOOL CRouterApp::InitInstance()
 	Int2 = new Interface(2);
 	rib = new RoutingTable();
 	RouterARPtab = new ArpTable();
+	StatsTable = new Stats();
 			
 	CInitDlg init_dlg;
 	INT_PTR nResponse = init_dlg.DoModal();
@@ -137,12 +138,19 @@ ArpTable * CRouterApp::GetARPtable(void)
 }
 
 
+Stats * CRouterApp::GetStatistics(void)
+{
+	return StatsTable;
+}
+
+
 UINT CRouterApp::RoutingProcess(void * pParam)
 {
 	Interface *iface = (Interface *) pParam;
 	Interface *out_if;
 	Frame *buffer = iface->GetBuffer();
 	Frame TTLex;
+	Stats *stats = theApp.GetStatistics();
 	RoutingTable *rib = theApp.GetRIB();
 	ArpTable *arp = theApp.GetARPtable();
 	int retval = 0;
@@ -168,6 +176,9 @@ UINT CRouterApp::RoutingProcess(void * pParam)
 			// RIPv2
 			continue;
 		}
+
+		// create statistics for the incoming frame
+		stats->Add(iface->GetIndex(),In,buffer);
 
 		// if it is ARP
 		if (buffer->GetLay3Type() == 0x0806)

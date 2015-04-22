@@ -336,6 +336,14 @@ UINT Interface::ReceiveThread(void * pParam)
 	const u_char *frame = NULL;
 	int retval = 0;
 
+	retval = pcap_setbuff(handle,102400);
+	if (retval == -1)
+	{
+		errorstring.Format("Error during the buffer allocation on INTERFACE %d!\r\n%s",iface->GetIndex(),pcap_geterr(handle));
+		theApp.GetRouterDlg()->MessageBox(CString(errorstring),_T("Error"),MB_ICONERROR);
+		return 0;
+	}
+	
 	while ((iface->IsEnabled()) && ((retval = pcap_next_ex(handle,&header,&frame)) >= 0))
 	{
 		if (retval == 0) continue;
@@ -346,7 +354,7 @@ UINT Interface::ReceiveThread(void * pParam)
 		errorstring.Format("Error receiving the packets on INTERFACE %d!\r\n%s",iface->GetIndex(),pcap_geterr(handle));
 		theApp.GetRouterDlg()->MessageBox(CString(errorstring),_T("Error"),MB_ICONERROR);
 	}
-	
+			
 	return 0;
 }
 
@@ -383,6 +391,9 @@ int Interface::SendFrame(Frame * buffer, IPaddr *NextHop, BOOL UseARP)
 		return 1;
 	}
 	m_cs_send.Unlock();
+
+	// create statistics for the outgoing frame
+	theApp.GetStatistics()->Add(IntIndex,Out,buffer);
 	
 	return 0;
 }
