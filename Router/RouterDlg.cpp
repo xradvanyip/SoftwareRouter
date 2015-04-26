@@ -8,6 +8,7 @@
 #include "afxdialogex.h"
 #include "IPAddrDlg.h"
 #include "StaticRouteDlg.h"
+#include "RipTimersDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -44,6 +45,7 @@ void CRouterDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_STATSLIST, m_stats);
 	DDX_Control(pDX, IDC_STATSCHECK, m_statscheckbox);
 	DDX_Control(pDX, IDC_RIPSWBUTTON, m_RipSWButton);
+	DDX_Control(pDX, IDC_RIPUPDATEIN, m_ripupdatein);
 }
 
 BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
@@ -66,6 +68,8 @@ BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
 	ON_MESSAGE(WM_INSERTSTAT_MESSAGE, &CRouterDlg::OnInsertStatMessage)
 	ON_MESSAGE(WM_UPDATESTAT_MESSAGE, &CRouterDlg::OnUpdateStatMessage)
 	ON_BN_CLICKED(IDC_RIPSWBUTTON, &CRouterDlg::OnBnClickedRipSwButton)
+	ON_BN_CLICKED(IDC_RIPTIMERSBUTTON, &CRouterDlg::OnBnClickedRipTimersButton)
+	ON_MESSAGE(WM_RIPUPDATESEC_MESSAGE, &CRouterDlg::OnRipUpdateSecMessage)
 END_MESSAGE_MAP()
 
 
@@ -85,6 +89,7 @@ BOOL CRouterDlg::OnInitDialog()
 	InitRoutingTable();
 	InitArpTable();
 	InitStatsTable();
+	m_ripupdatein.SetWindowTextW(_T("---"));
 	theApp.StartThreads();
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
@@ -566,4 +571,49 @@ void CRouterDlg::OnBnClickedRipSwButton()
 		AfxBeginThread(RoutingTable::StartRipProcess,NULL);
 		m_RipSWButton.SetWindowTextW(_T("Stop process"));
 	}
+}
+
+
+void CRouterDlg::OnBnClickedRipTimersButton()
+{
+	AfxBeginThread(CRouterDlg::EditTimersThread,NULL);
+}
+
+
+UINT CRouterDlg::EditTimersThread(void * pParam)
+{
+	RipTimersDlg timers_dlg;
+	timers_dlg.DoModal();
+
+	return 0;
+}
+
+
+void CRouterDlg::SetRipUpdateStatus(int sec)
+{
+	int *secptr = (int *) malloc(sizeof(int));
+	*secptr = sec;
+	SendMessage(WM_RIPUPDATESEC_MESSAGE,0,(LPARAM)secptr);
+}
+
+
+afx_msg LRESULT CRouterDlg::OnRipUpdateSecMessage(WPARAM wParam, LPARAM lParam)
+{
+	int *sec = (int *)lParam;
+	CString tmp;
+
+	if (*sec == -1)
+	{
+		tmp.Format(_T("---"));
+		m_ripupdatein.EnableWindow(FALSE);
+	}
+	else
+	{
+		tmp.Format(_T("%d"),*sec);
+		if (!m_ripupdatein.IsWindowEnabled()) m_ripupdatein.EnableWindow(TRUE);
+	}
+	m_ripupdatein.SetWindowTextW(tmp);
+	free(sec);
+	
+	return 0;
 }

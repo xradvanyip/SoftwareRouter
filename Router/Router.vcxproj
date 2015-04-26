@@ -113,6 +113,7 @@
     <ClInclude Include="IPAddrDlg.h" />
     <ClInclude Include="ProtocolDB.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="RipTimersDlg.h" />
     <ClInclude Include="Router.h" />
     <ClInclude Include="RouterDlg.h" />
     <ClInclude Include="RoutingTable.h" />
@@ -130,6 +131,7 @@
     <ClCompile Include="Interface.cpp" />
     <ClCompile Include="IPAddrDlg.cpp" />
     <ClCompile Include="ProtocolDB.cpp" />
+    <ClCompile Include="RipTimersDlg.cpp" />
     <ClCompile Include="Router.cpp" />
     <ClCompile Include="RouterDlg.cpp" />
     <ClCompile Include="RoutingTable.cpp" />

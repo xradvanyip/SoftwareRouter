@@ -27,13 +27,13 @@ private:
 	CArray<Route> TableEntry;
 	BOOL RipEnabled;
 	UINT Time;
-	UINT RipUpdateInterval;
 	UINT RipInvalidInterval;
 	UINT RipFlushInterval;
 	UINT RipHoldDownInterval;
 	CCriticalSection m_cs_rip_sw;
 	CCriticalSection m_cs_time;
 public:
+	UINT RipUpdateInterval;
 	CCriticalSection m_cs_table;
 	void AddDirectlyConnected(Interface * i);
 	void RemoveDirectlyConnected(Interface * i);
@@ -51,6 +51,8 @@ public:
 
 	virtual void Timeout();
 	void ResetTime(void);
+	void GetRipTimeIntervals(UINT& update, UINT& invalid, UINT& flush, UINT& holddown);
+	void SetRipTimeIntervals(UINT update, UINT invalid, UINT flush, UINT holddown);
 	BOOL IsRipEnabled(void);
 	void SetRipEnabled(BOOL bEnable = TRUE);
 	static UINT StartRipProcess(void * pParam);

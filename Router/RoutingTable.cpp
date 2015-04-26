@@ -320,13 +320,14 @@ void RoutingTable::Timeout()
 	m_cs_table.Lock();
 
 	Time += 5;
+	theApp.GetRouterDlg()->SetRipUpdateStatus(RipUpdateInterval - Time);
 	for (i=0;i < TableEntry.GetCount();i++)
 	{
 		if (TableEntry[i].type == RIP)
 		{
 			TableEntry[i].timer += 5;
 			if ((TableEntry[i].timer >= RipInvalidInterval) && (TableEntry[i].metric != 16)) ChangeToInvalidUnsafe(i);
-			if ((TableEntry[i].timer >= RipInvalidInterval)
+			if ((RipHoldDownInterval) && (TableEntry[i].timer >= RipInvalidInterval)
 				&& (TableEntry[i].timer <= (RipInvalidInterval + RipHoldDownInterval))) TableEntry[i].IsHoldDown = TRUE;
 			else TableEntry[i].IsHoldDown = FALSE;
 			if (Time == RipUpdateInterval) RipMessage[TableEntry[i].update_src->GetIndex() - 1].AddRipRoute(TableEntry[i].prefix,TableEntry[i].metric);
@@ -345,6 +346,7 @@ void RoutingTable::Timeout()
 			}
 	}
 	if (Time == RipUpdateInterval) Time = 0;
+	theApp.GetRouterDlg()->SetRipUpdateStatus(RipUpdateInterval - Time);
 
 	m_cs_table.Unlock();
 	m_cs_time.Unlock();
@@ -366,6 +368,26 @@ void RoutingTable::ResetTime(void)
 {
 	m_cs_time.Lock();
 	Time = 0;
+	m_cs_time.Unlock();
+}
+
+
+void RoutingTable::GetRipTimeIntervals(UINT& update, UINT& invalid, UINT& flush, UINT& holddown)
+{
+	update = RipUpdateInterval;
+	invalid = RipInvalidInterval;
+	flush = RipFlushInterval;
+	holddown = RipHoldDownInterval;
+}
+
+
+void RoutingTable::SetRipTimeIntervals(UINT update, UINT invalid, UINT flush, UINT holddown)
+{
+	m_cs_time.Lock();
+	RipUpdateInterval = update;
+	RipInvalidInterval = invalid;
+	RipFlushInterval = flush;
+	RipHoldDownInterval = holddown;
 	m_cs_time.Unlock();
 }
 
@@ -397,6 +419,7 @@ UINT RoutingTable::StartRipProcess(void * pParam)
 	rib->ResetTime();
 	rib->SetRipEnabled(TRUE);
 	rib->SendRipInitMessages();
+	theApp.GetRouterDlg()->SetRipUpdateStatus(theApp.GetRIB()->RipUpdateInterval);
 	rib->StartTimer();
 		
 	return 0;
@@ -409,6 +432,7 @@ UINT RoutingTable::StopRipProcess(void * pParam)
 	
 	rib->StopTimer();
 	rib->SetRipEnabled(FALSE);
+	theApp.GetRouterDlg()->SetRipUpdateStatus(-1);
 	rib->RemoveAllRipRoutes();
 
 	return 0;

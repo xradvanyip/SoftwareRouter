@@ -18,6 +18,7 @@
 #define WM_REMOVEARP_MESSAGE WM_APP+104
 #define WM_INSERTSTAT_MESSAGE WM_APP+105
 #define WM_UPDATESTAT_MESSAGE WM_APP+106
+#define WM_RIPUPDATESEC_MESSAGE WM_APP+107
 
 // CRouterDlg dialog
 class CRouterDlg : public CDialog
@@ -67,6 +68,7 @@ private:
 	CButton m_statscheckbox;
 
 	CButton m_RipSWButton;
+	CEdit m_ripupdatein;
 
 	void AutoResizeColumns(CListCtrl *control);
 	void InitInterfacesInfo(void);
@@ -84,6 +86,7 @@ public:
 	afx_msg void OnBnClickedStatscheck();
 	afx_msg void OnBnClickedStatsResetButton();
 	afx_msg void OnBnClickedRipSwButton();
+	afx_msg void OnBnClickedRipTimersButton();
 	static UINT EditIPThread(void * pParam);
 	void EditIP(Interface *i, IPaddr ip_addr);
 	void EnableInterface(Interface *i, CMFCButton *swbutton);
@@ -95,6 +98,8 @@ public:
 	void RemoveArp(int index);
 	void InsertStat(int index, Statistic& s);
 	void UpdateStat(int index, UINT count);
+	static UINT EditTimersThread(void * pParam);
+	void SetRipUpdateStatus(int sec);
 protected:
 	afx_msg LRESULT OnEditIPMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnInsertRouteMessage(WPARAM wParam, LPARAM lParam);
@@ -103,4 +108,5 @@ protected:
 	afx_msg LRESULT OnRemoveArpMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnInsertStatMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnUpdateStatMessage(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnRipUpdateSecMessage(WPARAM wParam, LPARAM lParam);
 };
