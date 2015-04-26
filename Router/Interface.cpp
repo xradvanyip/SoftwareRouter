@@ -87,6 +87,8 @@ BOOL Interface::IsEnabled(void)
 
 void Interface::SetEnabled(BOOL bEnable)
 {
+	Frame RipMessage;
+	
 	m_cs_sw.Lock();
 	if (Enabled != bEnable)
 	{
@@ -95,12 +97,21 @@ void Interface::SetEnabled(BOOL bEnable)
 		{
 			theApp.GetRIB()->AddDirectlyConnected(this);
 			theApp.GetARPtable()->AddInterfaceBroadcast(this);
+
+			if (theApp.GetRIB()->IsRipEnabled())
+			{
+				theApp.GetRIB()->ResetTime();
+				RipMessage.GenerateRipRequestMessage(IPAddrStruct);
+				SendFrame(&RipMessage);
+			}
+
 			StartReceive();
 		}
 		else
 		{
 			theApp.GetRIB()->RemoveDirectlyConnected(this);
 			theApp.GetARPtable()->RemoveOnInterface(this);
+			theApp.GetRIB()->ResetTime();
 		}
 	}
 	m_cs_sw.Unlock();

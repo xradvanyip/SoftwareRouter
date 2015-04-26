@@ -43,6 +43,7 @@ void CRouterDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_ARPLIST, m_arptable);
 	DDX_Control(pDX, IDC_STATSLIST, m_stats);
 	DDX_Control(pDX, IDC_STATSCHECK, m_statscheckbox);
+	DDX_Control(pDX, IDC_RIPSWBUTTON, m_RipSWButton);
 }
 
 BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
@@ -64,6 +65,7 @@ BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
 	ON_BN_CLICKED(IDC_STATSRESETBUTTON, &CRouterDlg::OnBnClickedStatsResetButton)
 	ON_MESSAGE(WM_INSERTSTAT_MESSAGE, &CRouterDlg::OnInsertStatMessage)
 	ON_MESSAGE(WM_UPDATESTAT_MESSAGE, &CRouterDlg::OnUpdateStatMessage)
+	ON_BN_CLICKED(IDC_RIPSWBUTTON, &CRouterDlg::OnBnClickedRipSwButton)
 END_MESSAGE_MAP()
 
 
@@ -547,4 +549,21 @@ afx_msg LRESULT CRouterDlg::OnUpdateStatMessage(WPARAM wParam, LPARAM lParam)
 	free(count);
 	
 	return 0;
+}
+
+
+void CRouterDlg::OnBnClickedRipSwButton()
+{
+	RoutingTable *rib = theApp.GetRIB();
+
+	if (rib->IsRipEnabled())
+	{
+		AfxBeginThread(RoutingTable::StopRipProcess,NULL);
+		m_RipSWButton.SetWindowTextW(_T("Start process"));
+	}
+	else
+	{
+		AfxBeginThread(RoutingTable::StartRipProcess,NULL);
+		m_RipSWButton.SetWindowTextW(_T("Stop process"));
+	}
 }

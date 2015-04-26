@@ -29,6 +29,11 @@ struct BufferedFrame {
 	u_char *FrameData;
 };
 
+struct RipResponseEntry {
+	IPaddr prefix;
+	BYTE metric;
+};
+
 class Frame
 {
 public:
@@ -39,6 +44,7 @@ private:
 	unbounded_buffer<BufferedFrame *> buffer;
 	u_char *frame;
 	u_int length;
+	CArray<RipResponseEntry> RouteList;
 	WORD CalculateChecksum(int count, u_char *addr);
 public:
 	void AddFrame(u_int length, const u_char *data);
@@ -89,5 +95,15 @@ public:
 	void GenerateTTLExceeded(Frame *old, IPaddr local_ip, WORD IPHdrID);
 	void FillICMPChecksum(void);
 	int IsICMPChecksumValid(void);
+
+	/* RIP */
+	int IsMulticast9(void);
+	int IsRipMessage(void);
+	int GenerateRawRipPacket(IPaddr local_ip, IPaddr *dest_ip, int DataLength);
+	void GenerateRipRequestMessage(IPaddr local_ip);
+	void GenerateRipResponseMessage(IPaddr local_ip, IPaddr *dest_ip = NULL);
+	void AddRipRoute(IPaddr prefix, BYTE metric);
+	int GetRipRouteCount(void);
+	CArray<RipResponseEntry> & ReadRipRoutesFromPacket(void);
 };
 

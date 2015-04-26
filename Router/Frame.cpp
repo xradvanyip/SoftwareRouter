@@ -19,6 +19,7 @@ Frame::Frame(u_int FrameLength)
 Frame::~Frame(void)
 {
 	if (frame) free(frame);
+	RouteList.RemoveAll();
 }
 
 
@@ -51,6 +52,7 @@ void Frame::Clear(void)
 	if (frame) free(frame);
 	frame = NULL;
 	length = 0;
+	RouteList.RemoveAll();
 }
 
 
@@ -257,10 +259,33 @@ void Frame::FillIPChecksum(void)
 void Frame::FillUDPChecksum(void)
 {
 	int IP_header_length = (frame[14] & 0x0F) * 4;
-	WORD *chksum_ptr = (WORD *) (frame + ETH2_HDR_LEN + IP_header_length + 6);
+	u_char *addr = frame + ETH2_HDR_LEN + IP_header_length;
+	WORD *addr_w = (WORD *) addr;
+	int count = MergeBytes(*(addr + 4),*(addr + 5));
+	WORD *chksum_ptr = addr_w + 3;
+	register DWORD sum = 0;
 	
 	*chksum_ptr = 0;
-	*chksum_ptr = CalculateChecksum(8,frame + ETH2_HDR_LEN + IP_header_length);
+	while (count > 1)
+	{
+		sum += *addr_w++;
+		count -= 2;
+	}
+
+	if (count > 0) sum += *(u_char *) addr_w;
+
+	addr_w = (WORD *) addr;
+	sum += 0x1100;
+	sum += *(addr_w + 2);
+	addr_w -= 4;
+	sum += *addr_w++;
+	sum += *addr_w++;
+	sum += *addr_w++;
+	sum += *addr_w;
+
+	while (sum >> 16) sum = (sum & 0xffff) + (sum >> 16);
+
+	*chksum_ptr = (WORD) (~sum);
 }
 
 
@@ -421,4 +446,184 @@ int Frame::IsICMPChecksumValid(void)
 	if (CalculateChecksum(MergeBytes(frame[16],frame[17]) - IP_header_length, frame + ETH2_HDR_LEN + IP_header_length) == 0) return TRUE;
 	
 	return FALSE;
+}
+
+
+int Frame::IsMulticast9(void)
+{
+	// check if is it multicast 224.0.0.9
+	if (frame[0] != 0x01) return 0;
+	if (frame[1] != 0x00) return 0;
+	if (frame[2] != 0x5E) return 0;
+	if (frame[3] != 0x00) return 0;
+	if (frame[4] != 0x00) return 0;
+	if (frame[5] != 0x09) return 0;
+
+	return 1;
+}
+
+
+int Frame::IsRipMessage(void)
+{
+	int index;
+		
+	// check for UDP datagram
+	if (GetLay4Type() != 17) return 0;
+
+	// check for source and destination ports 520 (RIP message)
+	if ((GetLay4SrcPort() != 520) || (GetLay4DestPort() != 520)) return 0;
+
+	index = ETH2_HDR_LEN + ((frame[14] & 0x0F) * 4) + 8;
+
+	// check if it is VERSION 2
+	if (frame[index + 1] != 2) return 0;
+
+	// if it request
+	if (frame[index] == 1) return 1;
+
+	// if it response
+	if (frame[index] == 2) return 2;
+
+	return 0;
+}
+
+
+int Frame::GenerateRawRipPacket(IPaddr local_ip, IPaddr *dest_ip, int DataLength)
+{
+	WORD w;
+	
+	length = ETH2_HDR_LEN + 28 + DataLength;
+	if (frame) free(frame);
+	frame = (u_char *) malloc(length * sizeof(u_char));
+	SetLay3Type(0x0800);
+
+	frame[14] = 0x45;
+	frame[15] = 0xC0;
+	w = length - ETH2_HDR_LEN;
+	frame[16] = GetUpperByte(w);
+	frame[17] = GetLowerByte(w);
+	frame[18] = 0;
+	frame[19] = 0;
+	frame[20] = 0;
+	frame[21] = 0;
+	frame[22] = 2;
+	frame[23] = 17;
+	SetSrcIPaddr(local_ip);
+	if (dest_ip) SetDestIPaddr(*dest_ip);
+	else
+	{
+		frame[30] = 224; // dest ip: 224.0.0.9
+		frame[31] = 0;
+		frame[32] = 0;
+		frame[33] = 9;
+	}
+	FillIPChecksum();
+
+	frame[34] = 2;  // src and dest port: 520
+	frame[35] = 8;
+	frame[36] = 2;
+	frame[37] = 8;
+	frame[38] = GetUpperByte(DataLength + 8);
+	frame[39] = GetLowerByte(DataLength + 8);
+	
+	return ETH2_HDR_LEN + 28;
+}
+
+
+void Frame::GenerateRipRequestMessage(IPaddr local_ip)
+{
+	int i;
+	int index = GenerateRawRipPacket(local_ip,NULL,24);
+
+	frame[index++] = 1;  // command
+	frame[index++] = 2;  // version
+	for (i=0;i < 21;i++) frame[index++] = 0;
+	frame[index] = 0x10;
+	FillUDPChecksum();
+}
+
+
+void Frame::GenerateRipResponseMessage(IPaddr local_ip, IPaddr *dest_ip)
+{
+	int index = GenerateRawRipPacket(local_ip,dest_ip,(RouteList.GetCount() * 20) + 4);
+	int i, j;
+	DWORD maxBit = 1 << 31;
+	IPaddr mask;
+
+	frame[index++] = 2;  // command
+	frame[index++] = 2;  // version
+	frame[index++] = 0;
+	frame[index++] = 0;
+
+	for (j=0;j < RouteList.GetCount();j++)
+	{
+		frame[index++] = 0;
+		frame[index++] = 2;
+		frame[index++] = 0;
+		frame[index++] = 0;
+		for (i=3;i >= 0;i--) frame[index++] = RouteList[j].prefix.b[i];
+
+		mask.dw = 0;
+		for (i=0;i < RouteList[j].prefix.SubnetMaskCIDR;i++)
+		{
+			mask.dw >>= 1;
+			mask.dw |= maxBit;
+		}
+		for (i=3;i >= 0;i--) frame[index++] = mask.b[i];
+
+		for (i=3;i >= 0;i--) frame[index++] = 0;
+
+		frame[index++] = 0;
+		frame[index++] = 0;
+		frame[index++] = 0;
+		frame[index++] = RouteList[j].metric;
+	}
+	FillUDPChecksum();
+}
+
+
+void Frame::AddRipRoute(IPaddr prefix, BYTE metric)
+{
+	RipResponseEntry newEntry;
+
+	newEntry.prefix = prefix;
+	newEntry.metric = metric;
+	if (newEntry.metric < 16) newEntry.metric++;
+	RouteList.Add(newEntry);
+}
+
+
+int Frame::GetRipRouteCount(void)
+{
+	return RouteList.GetCount();
+}
+
+
+CArray<RipResponseEntry> & Frame::ReadRipRoutesFromPacket(void)
+{
+	int IP_header_length = (frame[14] & 0x0F) * 4;
+	int count = (MergeBytes(frame[ETH2_HDR_LEN + IP_header_length + 4], frame[ETH2_HDR_LEN + IP_header_length + 5]) - 12) / 20;
+	int index = ETH2_HDR_LEN + IP_header_length + 12;
+	int i;
+	RipResponseEntry route;
+	IPaddr mask;
+
+	while (count)
+	{
+		index += 4;
+		for (i=3;i >= 0;i--) route.prefix.b[i] = frame[index++];
+		for (i=3;i >= 0;i--) mask.b[i] = frame[index++];
+		route.prefix.SubnetMaskCIDR = 0;
+		while (mask.dw)
+		{
+			route.prefix.SubnetMaskCIDR++;
+			mask.dw <<= 1;
+		}
+		index += 7;
+		route.metric = frame[index++];
+		RouteList.Add(route);
+		count--;
+	}
+
+	return RouteList;
 }

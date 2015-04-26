@@ -153,7 +153,7 @@ UINT CRouterApp::RoutingProcess(void * pParam)
 	Stats *stats = theApp.GetStatistics();
 	RoutingTable *rib = theApp.GetRIB();
 	ArpTable *arp = theApp.GetARPtable();
-	int retval = 0;
+	int retval;
 	MACaddr src_mac, dest_mac, local_mac = iface->GetMACAddrStruct();
 	IPaddr dest_ip, NextHop, *NextHop_ptr;
 
@@ -171,11 +171,10 @@ UINT CRouterApp::RoutingProcess(void * pParam)
 		if (theApp.IsBroadcast(src_mac)) continue;
 
 		// if destination MAC address is not the local or broadcast MAC address
-		if ((theApp.CompareMAC(dest_mac,local_mac) == 1) && (theApp.IsBroadcast(dest_mac) == 0))
-		{
-			// RIPv2
-			continue;
-		}
+		// or multicast for router, the frame is ignored
+		if ((theApp.CompareMAC(dest_mac,local_mac) == 1)
+			&& (theApp.IsBroadcast(dest_mac) == 0)
+			&& (!buffer->IsMulticast9())) continue;
 
 		// create statistics for the incoming frame
 		stats->Add(iface->GetIndex(),In,buffer);
@@ -193,6 +192,23 @@ UINT CRouterApp::RoutingProcess(void * pParam)
 
 		// if the IP header checksum is not valid, the packet is ignored
 		if (!buffer->IsIPChecksumValid()) continue;
+
+		// check for RIPv2 messages
+		retval = buffer->IsRipMessage();
+
+		// if it is RIPv2 request message
+		if (retval == 1)
+		{
+			rib->ProcessRipRequest(buffer,iface);
+			continue;
+		}
+
+		// if it is RIPv2 response message
+		if (retval == 2)
+		{
+			rib->ProcessRipResponse(buffer,iface);
+			continue;
+		}
 
 		// decrease the TTL value of packet by 1
 		buffer->DecTTL();

@@ -66,6 +66,8 @@ private:
 	CFixListCtrl m_stats;
 	CButton m_statscheckbox;
 
+	CButton m_RipSWButton;
+
 	void AutoResizeColumns(CListCtrl *control);
 	void InitInterfacesInfo(void);
 	void InitRoutingTable(void);
@@ -81,6 +83,7 @@ public:
 	afx_msg void OnBnClickedArpClearButton();
 	afx_msg void OnBnClickedStatscheck();
 	afx_msg void OnBnClickedStatsResetButton();
+	afx_msg void OnBnClickedRipSwButton();
 	static UINT EditIPThread(void * pParam);
 	void EditIP(Interface *i, IPaddr ip_addr);
 	void EnableInterface(Interface *i, CMFCButton *swbutton);
