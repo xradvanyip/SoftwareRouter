@@ -384,6 +384,7 @@ void RoutingTable::GetRipTimeIntervals(UINT& update, UINT& invalid, UINT& flush,
 void RoutingTable::SetRipTimeIntervals(UINT update, UINT invalid, UINT flush, UINT holddown)
 {
 	m_cs_time.Lock();
+	if (RipUpdateInterval != update) Time = 0;
 	RipUpdateInterval = update;
 	RipInvalidInterval = invalid;
 	RipFlushInterval = flush;
