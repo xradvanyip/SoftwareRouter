@@ -506,7 +506,8 @@ void RoutingTable::ProcessRipRequest(Frame * buffer, Interface * src_if)
 	if ((src_if->IsEnabled()) && (RipMessage.GetRipRouteCount()))
 	{
 		RipMessage.GenerateRipResponseMessage(src_if->GetIPAddrStruct(),&buffer->GetSrcIPaddr());
-		src_if->SendFrame(&RipMessage);
+		RipMessage.SetDestMAC(buffer->GetSrcMAC());
+		src_if->SendFrame(&RipMessage,NULL,FALSE);
 	}
 }
 
