@@ -135,7 +135,7 @@ void StaticRouteDlg::OnBnClickedOk()
 
 	m_prefix.GetAddress(dwAddr);
 	dwAddr <<= newRoute.prefix.SubnetMaskCIDR;
-	if (dwAddr != 0)
+	if ((newRoute.prefix.SubnetMaskCIDR < 32) && (dwAddr != 0))
 	{
 		AfxMessageBox(_T("Please enter a valid PREFIX!"));
 		return;
