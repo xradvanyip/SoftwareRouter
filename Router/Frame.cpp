@@ -162,6 +162,15 @@ WORD Frame::GetLay4SrcPort(void)
 }
 
 
+void Frame::SetLay4SrcPort(WORD port)
+{
+	int IP_header_length = (frame[14] & 0x0F) * 4;
+
+	frame[ETH2_HDR_LEN+IP_header_length] = GetUpperByte(port);
+	frame[ETH2_HDR_LEN+IP_header_length+1] = GetLowerByte(port);
+}
+
+
 WORD Frame::GetLay4DestPort(void)
 {
 	int IP_header_length;
@@ -169,6 +178,15 @@ WORD Frame::GetLay4DestPort(void)
 	IP_header_length = (frame[14] & 0x0F) * 4;
 	
 	return MergeBytes(frame[ETH2_HDR_LEN+IP_header_length+2],frame[ETH2_HDR_LEN+IP_header_length+3]);
+}
+
+
+void Frame::SetLay4DestPort(WORD port)
+{
+	int IP_header_length = (frame[14] & 0x0F) * 4;
+
+	frame[ETH2_HDR_LEN+IP_header_length+2] = GetUpperByte(port);
+	frame[ETH2_HDR_LEN+IP_header_length+3] = GetLowerByte(port);
 }
 
 
@@ -289,6 +307,40 @@ void Frame::FillUDPChecksum(void)
 }
 
 
+void Frame::FillTCPChecksum(void)
+{
+	int IP_header_length = (frame[14] & 0x0F) * 4;
+	u_char *addr = frame + ETH2_HDR_LEN + IP_header_length;
+	WORD *addr_w = (WORD *) addr;
+	WORD TCP_length = MergeBytes(frame[ETH2_HDR_LEN + 2],frame[ETH2_HDR_LEN + 3]) - IP_header_length;
+	int count = TCP_length;
+	WORD *chksum_ptr = addr_w + 8;
+	register DWORD sum = 0;
+	
+	*chksum_ptr = 0;
+	while (count > 1)
+	{
+		sum += *addr_w++;
+		count -= 2;
+	}
+
+	if (count > 0) sum += *(u_char *) addr_w;
+
+	addr_w = (WORD *) addr;
+	sum += 0x0600;
+	sum += ((TCP_length & 0xFF) << 8) | (TCP_length >> 8);
+	addr_w -= 4;
+	sum += *addr_w++;
+	sum += *addr_w++;
+	sum += *addr_w++;
+	sum += *addr_w;
+
+	while (sum >> 16) sum = (sum & 0xffff) + (sum >> 16);
+
+	*chksum_ptr = (WORD) (~sum);
+}
+
+
 int Frame::IsArpRequest(void)
 {
 	if (MergeBytes(frame[20],frame[21]) == 1) return 1;
@@ -373,7 +425,9 @@ IPaddr Frame::GetArpTargetIP(void)
 
 int Frame::IsIcmpEchoRequest(void)
 {
-	if ((GetLay4Type() == 1) && (frame[34] == 8)) return 1;
+	int IP_header_length = (frame[14] & 0x0F) * 4;
+	
+	if ((GetLay4Type() == 1) && (frame[ETH2_HDR_LEN+IP_header_length] == 8)) return 1;
 	
 	return 0;
 }
@@ -446,6 +500,23 @@ int Frame::IsICMPChecksumValid(void)
 	if (CalculateChecksum(MergeBytes(frame[16],frame[17]) - IP_header_length, frame + ETH2_HDR_LEN + IP_header_length) == 0) return TRUE;
 	
 	return FALSE;
+}
+
+
+WORD Frame::GetICMPIdentifier(void)
+{
+	int IP_header_length = (frame[14] & 0x0F) * 4;
+
+	return MergeBytes(frame[ETH2_HDR_LEN+IP_header_length+4],frame[ETH2_HDR_LEN+IP_header_length+5]);
+}
+
+
+void Frame::SetICMPIdentifier(WORD id)
+{
+	int IP_header_length = (frame[14] & 0x0F) * 4;
+
+	frame[ETH2_HDR_LEN+IP_header_length+4] = GetUpperByte(id);
+	frame[ETH2_HDR_LEN+IP_header_length+5] = GetLowerByte(id);
 }
 
 

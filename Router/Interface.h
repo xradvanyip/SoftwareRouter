@@ -3,7 +3,7 @@
 #include <pcap.h>
 #include "Frame.h"
 
-enum NAT_MODE {INSIDE, OUTSIDE};
+enum NAT_MODE {DISABLED, INSIDE, OUTSIDE};
 
 class Interface
 {
@@ -26,6 +26,7 @@ private:
 	Frame *FrameBuffer;
 	CCriticalSection m_cs_sw;
 	CCriticalSection m_cs_ip;
+	CCriticalSection m_cs_natmode;
 	CCriticalSection m_cs_handle;
 	CCriticalSection m_cs_send;
 	void SetPrefixStruct(void);

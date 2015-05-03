@@ -105,18 +105,21 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AddressPoolDlg.h" />
     <ClInclude Include="ArpTable.h" />
     <ClInclude Include="FixListCtrl.h" />
     <ClInclude Include="Frame.h" />
     <ClInclude Include="InitDlg.h" />
     <ClInclude Include="Interface.h" />
     <ClInclude Include="IPAddrDlg.h" />
+    <ClInclude Include="NatTable.h" />
     <ClInclude Include="ProtocolDB.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="RipTimersDlg.h" />
     <ClInclude Include="Router.h" />
     <ClInclude Include="RouterDlg.h" />
     <ClInclude Include="RoutingTable.h" />
+    <ClInclude Include="StaticNatDlg.h" />
     <ClInclude Include="StaticRouteDlg.h" />
     <ClInclude Include="Stats.h" />
     <ClInclude Include="stdafx.h" />
@@ -124,17 +127,20 @@
     <ClInclude Include="Timer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AddressPoolDlg.cpp" />
     <ClCompile Include="ArpTable.cpp" />
     <ClCompile Include="FixListCtrl.cpp" />
     <ClCompile Include="Frame.cpp" />
     <ClCompile Include="InitDlg.cpp" />
     <ClCompile Include="Interface.cpp" />
     <ClCompile Include="IPAddrDlg.cpp" />
+    <ClCompile Include="NatTable.cpp" />
     <ClCompile Include="ProtocolDB.cpp" />
     <ClCompile Include="RipTimersDlg.cpp" />
     <ClCompile Include="Router.cpp" />
     <ClCompile Include="RouterDlg.cpp" />
     <ClCompile Include="RoutingTable.cpp" />
+    <ClCompile Include="StaticNatDlg.cpp" />
     <ClCompile Include="StaticRouteDlg.cpp" />
     <ClCompile Include="Stats.cpp" />
     <ClCompile Include="stdafx.cpp">

@@ -12,7 +12,7 @@ Interface::Interface(int index)
 {
 	int i;
 
-	NATmode = OUTSIDE;
+	NATmode = DISABLED;
 	for (i=0;i < 6;i++) MACAddrStruct.b[i] = 0x00;
 	for (i=0;i < 4;i++) IPAddrStruct.b[i] = 0x00;
 	IPAddrStruct.SubnetMaskCIDR = 0;
@@ -274,13 +274,18 @@ BYTE Interface::GetMaskCIDR(void)
 
 NAT_MODE Interface::GetNATmode(void)
 {
+	CSingleLock lock(&m_cs_natmode);
+
+	lock.Lock();
 	return NATmode;
 }
 
 
 void Interface::SetNATmode(NAT_MODE mode)
 {
+	m_cs_natmode.Lock();
 	NATmode = mode;
+	m_cs_natmode.Unlock();
 }
 
 

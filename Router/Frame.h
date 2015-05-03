@@ -75,10 +75,15 @@ public:
 	void FillIPChecksum(void);
 	BYTE GetLay4Type(void);
 	WORD GetLay4SrcPort(void);
+	void SetLay4SrcPort(WORD port);
 	WORD GetLay4DestPort(void);
+	void SetLay4DestPort(WORD port);
 
 	/* UDP */
 	void FillUDPChecksum(void);
+
+	/* TCP */
+	void FillTCPChecksum(void);
 
 	/* ARP */
 	int IsArpRequest(void);
@@ -95,6 +100,8 @@ public:
 	void GenerateTTLExceeded(Frame *old, IPaddr local_ip, WORD IPHdrID);
 	void FillICMPChecksum(void);
 	int IsICMPChecksumValid(void);
+	WORD GetICMPIdentifier(void);
+	void SetICMPIdentifier(WORD id);
 
 	/* RIP */
 	int IsMulticast9(void);

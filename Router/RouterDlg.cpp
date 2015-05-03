@@ -9,6 +9,8 @@
 #include "IPAddrDlg.h"
 #include "StaticRouteDlg.h"
 #include "RipTimersDlg.h"
+#include "StaticNatDlg.h"
+#include "AddressPoolDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -46,6 +48,10 @@ void CRouterDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_STATSCHECK, m_statscheckbox);
 	DDX_Control(pDX, IDC_RIPSWBUTTON, m_RipSWButton);
 	DDX_Control(pDX, IDC_RIPUPDATEIN, m_ripupdatein);
+	DDX_Control(pDX, IDC_NATLIST, m_nattable);
+	DDX_Control(pDX, IDC_POOL, m_pool);
+	DDX_Control(pDX, IDC_DYNNATSWBUTTON, m_DynNatSwButton);
+	DDX_Control(pDX, IDC_PATSWBUTTON, m_PatSwButton);
 }
 
 BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
@@ -70,6 +76,18 @@ BEGIN_MESSAGE_MAP(CRouterDlg, CDialog)
 	ON_BN_CLICKED(IDC_RIPSWBUTTON, &CRouterDlg::OnBnClickedRipSwButton)
 	ON_BN_CLICKED(IDC_RIPTIMERSBUTTON, &CRouterDlg::OnBnClickedRipTimersButton)
 	ON_MESSAGE(WM_RIPUPDATESEC_MESSAGE, &CRouterDlg::OnRipUpdateSecMessage)
+	ON_BN_CLICKED(IDC_ADDNATBUTTON, &CRouterDlg::OnBnClickedAddNatButton)
+	ON_BN_CLICKED(IDC_REMOVENATBUTTON, &CRouterDlg::OnBnClickedRemoveNatButton)
+	ON_MESSAGE(WM_INSERTNAT_MESSAGE, &CRouterDlg::OnInsertNatMessage)
+	ON_MESSAGE(WM_REMOVENAT_MESSAGE, &CRouterDlg::OnRemoveNatMessage)
+	ON_CBN_SELCHANGE(IDC_INT1NATCOMBO, &CRouterDlg::OnCbnSelchangeInt1NatCombo)
+	ON_CBN_SELCHANGE(IDC_INT2NATCOMBO, &CRouterDlg::OnCbnSelchangeInt2NatCombo)
+	ON_BN_CLICKED(IDC_POOLBUTTON, &CRouterDlg::OnBnClickedPoolButton)
+	ON_MESSAGE(WM_EDITPOOL_MESSAGE, &CRouterDlg::OnEditPoolMessage)
+	ON_MESSAGE(WM_UPDATENAT_MESSAGE, &CRouterDlg::OnUpdateNatMessage)
+	ON_BN_CLICKED(IDC_NATRESETBUTTON, &CRouterDlg::OnBnClickedNatResetButton)
+	ON_BN_CLICKED(IDC_DYNNATSWBUTTON, &CRouterDlg::OnBnClickedDynNatSWbutton)
+	ON_BN_CLICKED(IDC_PATSWBUTTON, &CRouterDlg::OnBnClickedPatSWbutton)
 END_MESSAGE_MAP()
 
 
@@ -89,6 +107,7 @@ BOOL CRouterDlg::OnInitDialog()
 	InitRoutingTable();
 	InitArpTable();
 	InitStatsTable();
+	InitNatTable();
 	m_ripupdatein.SetWindowTextW(_T("---"));
 	theApp.StartThreads();
 
@@ -186,6 +205,17 @@ void CRouterDlg::InitStatsTable(void)
 	m_stats.InsertColumn(5,_T("Count"),LVCFMT_CENTER,55);
 
 	m_statscheckbox.SetCheck(BST_CHECKED);
+}
+
+
+void CRouterDlg::InitNatTable(void)
+{
+	m_nattable.SetExtendedStyle(m_stats.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	m_nattable.InsertColumn(0,_T("Protocol"),LVCFMT_CENTER,51);
+	m_nattable.InsertColumn(1,_T("Mode"),LVCFMT_CENTER,56);
+	m_nattable.InsertColumn(2,_T("Global address"),LVCFMT_CENTER,130);
+	m_nattable.InsertColumn(3,_T("Local address"),LVCFMT_CENTER,130);
+	m_nattable.InsertColumn(4,_T("Timeout"),LVCFMT_CENTER,50);
 }
 
 
@@ -288,6 +318,40 @@ afx_msg LRESULT CRouterDlg::OnEditIPMessage(WPARAM wParam, LPARAM lParam)
 	else m_int2ipaddr.SetWindowTextW(i->GetIPAddrString());
 
 	return 0;
+}
+
+
+void CRouterDlg::OnCbnSelchangeInt1NatCombo()
+{
+	switch (m_int1natmode.GetCurSel())
+	{
+	case 0:
+		theApp.GetInt1()->SetNATmode(DISABLED);
+		break;
+	case 1:
+		theApp.GetInt1()->SetNATmode(INSIDE);
+		break;
+	case 2:
+		theApp.GetInt1()->SetNATmode(OUTSIDE);
+		break;
+	}
+}
+
+
+void CRouterDlg::OnCbnSelchangeInt2NatCombo()
+{
+	switch (m_int2natmode.GetCurSel())
+	{
+	case 0:
+		theApp.GetInt2()->SetNATmode(DISABLED);
+		break;
+	case 1:
+		theApp.GetInt2()->SetNATmode(INSIDE);
+		break;
+	case 2:
+		theApp.GetInt2()->SetNATmode(OUTSIDE);
+		break;
+	}
 }
 
 
@@ -398,8 +462,8 @@ void CRouterDlg::OnBnClickedArpClearButton()
 	theApp.GetARPtable()->RemoveAll();
 	
 	/*CString tmp;
-	tmp.Format(_T("%d %d %d %d %d %d"),m_stats.GetColumnWidth(0),m_stats.GetColumnWidth(1),m_stats.GetColumnWidth(2),
-		m_stats.GetColumnWidth(3),m_stats.GetColumnWidth(4),m_stats.GetColumnWidth(5));
+	tmp.Format(_T("%d %d %d %d %d"),m_nattable.GetColumnWidth(0),m_nattable.GetColumnWidth(1),m_nattable.GetColumnWidth(2),
+		m_nattable.GetColumnWidth(3),m_nattable.GetColumnWidth(4));
 	AfxMessageBox(tmp);*/
 }
 
@@ -616,4 +680,220 @@ afx_msg LRESULT CRouterDlg::OnRipUpdateSecMessage(WPARAM wParam, LPARAM lParam)
 	free(sec);
 	
 	return 0;
+}
+
+
+void CRouterDlg::OnBnClickedAddNatButton()
+{
+	AfxBeginThread(CRouterDlg::EditStaticNatThread,NULL);
+}
+
+
+void CRouterDlg::OnBnClickedRemoveNatButton()
+{
+	int index = m_nattable.GetSelectionMark();
+
+	if (index == -1) AfxMessageBox(_T("No rule was selected!"));
+	else if (theApp.GetNAT()->RemoveStaticRule(index)) AfxMessageBox(_T("Please select a STATIC rule!"));
+}
+
+
+void CRouterDlg::InsertTranslation(int index, Translation& nat)
+{
+	int *indexptr = (int *) malloc(sizeof(int));
+	Translation *natptr = (Translation *) malloc(sizeof(Translation));
+	*indexptr = index;
+	*natptr = nat;
+	SendMessage(WM_INSERTNAT_MESSAGE,(WPARAM)indexptr,(LPARAM)natptr);
+}
+
+
+afx_msg LRESULT CRouterDlg::OnInsertNatMessage(WPARAM wParam, LPARAM lParam)
+{
+	int *index = (int *)wParam;
+	Translation *nat = (Translation *)lParam;
+	ProtocolDB *db = ProtocolDB::GetInstance();
+	CString tmp;
+
+	if ((nat->type != PAT) && (!nat->IsPortForward)) m_nattable.InsertItem(*index,_T("-"));
+	else m_nattable.InsertItem(*index,db->GetIPProtocolName(nat->Lay4Prot));
+
+	if (nat->mode == INSIDE) m_nattable.SetItemText(*index,1,_T("INSIDE"));
+	else m_nattable.SetItemText(*index,1,_T("OUTSIDE"));
+
+	if ((nat->IsPortForward) || (nat->type == PAT)) tmp.Format(_T("%u.%u.%u.%u:%u"),nat->global.b[3],nat->global.b[2],nat->global.b[1],nat->global.b[0],nat->global_port);
+	else tmp.Format(_T("%u.%u.%u.%u"),nat->global.b[3],nat->global.b[2],nat->global.b[1],nat->global.b[0]);
+	m_nattable.SetItemText(*index,2,tmp);
+
+	if ((nat->IsPortForward) || (nat->type == PAT)) tmp.Format(_T("%u.%u.%u.%u:%u"),nat->local.b[3],nat->local.b[2],nat->local.b[1],nat->local.b[0],nat->local_port);
+	else tmp.Format(_T("%u.%u.%u.%u"),nat->local.b[3],nat->local.b[2],nat->local.b[1],nat->local.b[0]);
+	m_nattable.SetItemText(*index,3,tmp);
+
+	if (nat->type == STATICNAT) m_nattable.SetItemText(*index,4,_T("-"));
+	else
+	{
+		tmp.Format(_T("%.2d:%.2d"),nat->timeout / 60, nat->timeout % 60);
+		m_nattable.SetItemText(*index,4,tmp);
+	}
+
+	free(index);
+	free(nat);
+	
+	return 0;
+}
+
+
+UINT CRouterDlg::EditStaticNatThread(void * pParam)
+{
+	StaticNatDlg nat_dlg;
+	nat_dlg.DoModal();
+	
+	return 0;
+}
+
+
+void CRouterDlg::RemoveTranslation(int index)
+{
+	int *indexptr = (int *) malloc(sizeof(int));
+
+	*indexptr = index;
+	SendMessage(WM_REMOVENAT_MESSAGE,0,(LPARAM)indexptr);
+}
+
+
+afx_msg LRESULT CRouterDlg::OnRemoveNatMessage(WPARAM wParam, LPARAM lParam)
+{
+	int *index = (int *)lParam;
+	
+	m_nattable.DeleteItem(*index);
+	free(index);
+	
+	return 0;
+}
+
+
+void CRouterDlg::OnBnClickedPoolButton()
+{
+	AfxBeginThread(CRouterDlg::EditPoolThread,NULL);
+}
+
+
+void CRouterDlg::EditPool(IPaddr first, IPaddr last)
+{
+	IPaddr *firstIPptr = (IPaddr *) malloc(sizeof(IPaddr));
+	IPaddr *lastIPptr = (IPaddr *) malloc(sizeof(IPaddr));
+
+	*firstIPptr = first;
+	*lastIPptr = last;
+	
+	SendMessage(WM_EDITPOOL_MESSAGE,(WPARAM)firstIPptr,(LPARAM)lastIPptr);
+}
+
+
+afx_msg LRESULT CRouterDlg::OnEditPoolMessage(WPARAM wParam, LPARAM lParam)
+{
+	IPaddr *firstIPptr = (IPaddr *)wParam;
+	IPaddr *lastIPptr = (IPaddr *)lParam;
+	CString tmp;
+
+	tmp.Format(_T("%u.%u.%u.%u/%u"),firstIPptr->b[3],firstIPptr->b[2],firstIPptr->b[1],firstIPptr->b[0],firstIPptr->SubnetMaskCIDR);
+	tmp.AppendFormat(_T(" - "));
+	tmp.AppendFormat(_T("%u.%u.%u.%u/%u"),lastIPptr->b[3],lastIPptr->b[2],lastIPptr->b[1],lastIPptr->b[0],lastIPptr->SubnetMaskCIDR);
+	m_pool.SetWindowTextW(tmp);
+
+	free(firstIPptr);
+	free(lastIPptr);
+	
+	return 0;
+}
+
+
+UINT CRouterDlg::EditPoolThread(void * pParam)
+{
+	AddressPoolDlg pool_dlg;
+	pool_dlg.DoModal();
+
+	return 0;
+}
+
+
+void CRouterDlg::UpdateTranslation(int index, UINT timeout)
+{
+	int *indexptr = (int *) malloc(sizeof(int));
+	UINT *timeoutptr = (UINT *) malloc(sizeof(UINT));
+	*indexptr = index;
+	*timeoutptr = timeout;
+	SendMessage(WM_UPDATENAT_MESSAGE,(WPARAM)indexptr,(LPARAM)timeoutptr);
+}
+
+
+afx_msg LRESULT CRouterDlg::OnUpdateNatMessage(WPARAM wParam, LPARAM lParam)
+{
+	int *index = (int *)wParam;
+	UINT *timeout = (UINT *)lParam;
+	CString tmp;
+
+	tmp.Format(_T("%.2d:%.2d"),*timeout / 60, *timeout % 60);
+	m_nattable.SetItemText(*index,4,tmp);
+
+	free(index);
+	free(timeout);
+	
+	return 0;
+}
+
+
+void CRouterDlg::OnBnClickedNatResetButton()
+{
+	theApp.GetNAT()->RemoveAllDynamic();
+}
+
+
+void CRouterDlg::OnBnClickedDynNatSWbutton()
+{
+	NatTable *nat = theApp.GetNAT();
+
+	if (nat->IsDynNatEnabled())
+	{
+		nat->SetDynNatEnabled(FALSE);
+		m_DynNatSwButton.SetWindowTextW(_T("Start dynamic NAT"));
+	}
+	else
+	{
+		if (!nat->IsPoolConfigured())
+		{
+			AfxMessageBox(_T("Configure the IP address pool first!"));
+			return;
+		}
+		
+		if (nat->IsPatEnabled())
+		{
+			nat->SetPatEnabled(FALSE);
+			m_PatSwButton.SetWindowTextW(_T("Start PAT"));
+		}
+		nat->SetDynNatEnabled(TRUE);
+		m_DynNatSwButton.SetWindowTextW(_T("Stop dynamic NAT"));
+	}
+}
+
+
+void CRouterDlg::OnBnClickedPatSWbutton()
+{
+	NatTable *nat = theApp.GetNAT();
+
+	if (nat->IsPatEnabled())
+	{
+		nat->SetPatEnabled(FALSE);
+		m_PatSwButton.SetWindowTextW(_T("Start PAT"));
+	}
+	else
+	{
+		if (nat->IsDynNatEnabled())
+		{
+			nat->SetDynNatEnabled(FALSE);
+			m_DynNatSwButton.SetWindowTextW(_T("Start dynamic NAT"));
+		}
+		nat->SetPatEnabled(TRUE);
+		m_PatSwButton.SetWindowTextW(_T("Stop PAT"));
+	}
 }

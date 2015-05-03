@@ -35,6 +35,7 @@ private:
 	RoutingTable *rib;
 	ArpTable *RouterARPtab;
 	Stats *StatsTable;
+	NatTable *nat;
 public:
 	BOOL stats_enabled;
 	Interface * GetInt1(void);
@@ -43,6 +44,7 @@ public:
 	RoutingTable * GetRIB(void);
 	ArpTable * GetARPtable(void);
 	Stats * GetStatistics(void);
+	NatTable * GetNAT(void);
 	static UINT RoutingProcess(void * pParam);
 	void StartThreads(void);
 	int CompareMAC(MACaddr& mac1, MACaddr& mac2);

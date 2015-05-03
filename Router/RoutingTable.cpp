@@ -109,6 +109,7 @@ void RoutingTable::RemoveDirectlyConnected(Interface * i)
 
 int RoutingTable::MatchPrefix(IPaddr& address, IPaddr& prefix)
 {
+	if (prefix.SubnetMaskCIDR == 0) return 1;
 	if ((address.dw >> (32 - prefix.SubnetMaskCIDR)) == (prefix.dw >> (32 - prefix.SubnetMaskCIDR))) return 1;
 	
 	return 0;

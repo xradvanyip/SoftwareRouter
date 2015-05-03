@@ -76,6 +76,7 @@ BOOL CRouterApp::InitInstance()
 	rib = new RoutingTable();
 	RouterARPtab = new ArpTable();
 	StatsTable = new Stats();
+	nat = new NatTable();
 			
 	CInitDlg init_dlg;
 	INT_PTR nResponse = init_dlg.DoModal();
@@ -144,6 +145,12 @@ Stats * CRouterApp::GetStatistics(void)
 }
 
 
+NatTable * CRouterApp::GetNAT(void)
+{
+	return nat;
+}
+
+
 UINT CRouterApp::RoutingProcess(void * pParam)
 {
 	Interface *iface = (Interface *) pParam;
@@ -153,6 +160,7 @@ UINT CRouterApp::RoutingProcess(void * pParam)
 	Stats *stats = theApp.GetStatistics();
 	RoutingTable *rib = theApp.GetRIB();
 	ArpTable *arp = theApp.GetARPtable();
+	NatTable *nat = theApp.GetNAT();
 	int retval;
 	MACaddr src_mac, dest_mac, local_mac = iface->GetMACAddrStruct();
 	IPaddr dest_ip, NextHop, *NextHop_ptr;
@@ -220,7 +228,10 @@ UINT CRouterApp::RoutingProcess(void * pParam)
 			TTLex.Clear();
 			continue;
 		}
-		
+
+		// if NAT is enabled but the translation was not successfull, the packet is ignored
+		if (nat->Translate(buffer,iface) != 0) continue;
+
 		dest_ip = buffer->GetDestIPaddr();
 		// if destination of packet is this router
 		if ((theApp.GetInt1()->IsLocalIP(dest_ip)) || (theApp.GetInt2()->IsLocalIP(dest_ip)))
@@ -234,8 +245,7 @@ UINT CRouterApp::RoutingProcess(void * pParam)
 			continue;
 		}
 
-		// NAT
-
+		dest_ip = buffer->GetDestIPaddr();
 		rib->m_cs_table.Lock();
 		NextHop_ptr = NULL;
 		out_if = rib->DoLookup(dest_ip,&NextHop_ptr);

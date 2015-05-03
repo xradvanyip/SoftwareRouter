@@ -83,7 +83,8 @@ void ArpTable::ReplyToRequest(Frame * buffer, Interface *iface)
 	newEntry.i = iface;
 
 	if ((iface->IsLocalIP(ArpTargetIP))
-		|| (((found_if = theApp.GetRIB()->DoLookup(ArpTargetIP)) != NULL) && (found_if != iface)))
+		|| (((found_if = theApp.GetRIB()->DoLookup(ArpTargetIP)) != NULL) && (found_if != iface))
+		|| (theApp.GetNAT()->IsGlobalIP(ArpTargetIP)))
 	{
 		buffer->GenerateArpReply(iface->GetMACAddrStruct(),ArpTargetIP);
 		iface->SendFrame(buffer);
