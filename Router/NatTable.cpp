@@ -498,7 +498,7 @@ int NatTable::CreateOverload(Frame * buffer, Interface * src_if)
 			if (i > 65530) return 1;
 		}
 		else i = srcId;
-		Reservation.SetAt(i,TRUE);
+		IcmpIdReservation.SetAt(i,TRUE);
 		lock.Unlock();
 
 		newRule.global_icmp_id = i;
